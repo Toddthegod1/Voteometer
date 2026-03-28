@@ -84,6 +84,22 @@ export default function VoteometerApp() {
     setSelectedAnswers((prev) => ({ ...prev, [question]: answer }));
   };
 
+  const handleAddCandidate = (party: Party, candidateName: string) => {
+    const newCandidate: Candidate = {
+      id: crypto.randomUUID(),
+      name: candidateName,
+      party,
+      rating: 0,
+    };
+    setCandidates((prev) => [...prev, newCandidate]);
+
+    // Add a question for the new candidate
+    setQuestions((prevQuestions) => [
+      ...prevQuestions,
+      { question: `On a scale of -10 to 10, how would you rate ${candidateName} as a candidate?`, id: candidateName },
+    ]);
+  };
+
   return (
     <main className="min-h-screen p-6">
       <div className="mx-auto max-w-7xl space-y-6">
