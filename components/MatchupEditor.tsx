@@ -17,48 +17,79 @@ export default function MatchupEditor({
   matchups,
   onChange,
 }: Props) {
-  function getProb(democratCandidateId: string, republicanCandidateId: string) {
-    return (
-      matchups.find(
-        (m) =>
-          m.democratCandidateId === democratCandidateId &&
-          m.republicanCandidateId === republicanCandidateId
-      )?.democratWinProb ?? 50
-    );
-  }
-
-  function setProb(
-    democratCandidateId: string,
-    republicanCandidateId: string,
+  const handleMatchupChange = (
+    party: "Democrat" | "Republican",
+    candidateId: string,
+    opponentId: string,
     value: number
-  ) {
-    const safeValue = clampPercent(value);
+  ) => {
+    const updatedMatchups = matchups.map((matchup) => {
+      if (
+        matchup[`${party.toLowerCase()}CandidateId`] === candidateId &&
+        matchup[`${party === "Democrat" ? "republican" : "democrat"}CandidateId`] ===
+          opponentId
+      ) {
+        return {
+          ...matchup,
+          [`${party.toLowerCase()}WinProb`]: clampPercent(value),
+        };
+      }
+      return matchup;
+    });
 
-    const existing = matchups.find(
-      (m) =>
-        m.democratCandidateId === democratCandidateId &&
-        m.republicanCandidateId === republicanCandidateId
-    );
+    onChange(updatedMatchups);
+  };
 
-    if (existing) {
-      onChange(
-        matchups.map((m) =>
-          m.democratCandidateId === democratCandidateId &&
-          m.republicanCandidateId === republicanCandidateId
-            ? { ...m, democratWinProb: safeValue }
-            : m
-        )
-      );
-      return;
-    }
-
-    onChange([
-      ...matchups,
-      {
-        democratCandidateId,
-        republicanCandidateId,
-        democratWinProb: safeValue,
-      },
-    ]);
-  }
+  return (
+    <div className="space-y-6">
+      {["Democrat", "Republican"].map((party) => (
+        <div key={party}>
+          <h3 className="text-lg font-medium text-slate-700">
+            {party === "Democrat" ? "Democratic" : "Republican"} Matchups
+          </h3>
+          <div className="mt-4 space-y-4">
+            {(party === "Democrat" ? democrats : republicans).map((candidate) => (
+              <div key={candidate.id} className="space-y-2">
+                <h4 className="text-sm font-medium text-slate-600">
+                  {candidate.name}
+                </h4>
+                <div className="space-y-2">
+                  {(party === "Democrat" ? republicans : democrats).map((opponent) => (
+                    <div
+                      key={`${candidate.id}-${opponent.id}`}
+                      className="flex items-center gap-2"
+                    >
+                      <span className="text-sm text-slate-500">
+                        {candidate.name} vs. {opponent.name}
+                      </span>
+                      <input
+                        type="number"
+                        value={
+                          matchups.find(
+                            (m) =>
+                              m[`${party.toLowerCase()}CandidateId`] === candidate.id &&
+                              m[`${party === "Democrat" ? "republican" : "democrat"}CandidateId`] ===
+                                opponent.id
+                          )?.[`${party.toLowerCase()}WinProb`] || 0
+                        }
+                        onChange={(e) =>
+                          handleMatchupChange(
+                            party,
+                            candidate.id,
+                            opponent.id,
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        className="w-20 rounded-md border border-slate-300 p-2 text-sm"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
