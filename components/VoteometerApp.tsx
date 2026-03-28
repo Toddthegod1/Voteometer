@@ -7,6 +7,8 @@ import ResultsPanel from "@/components/ResultsPanel";
 import { calculateScores } from "@/lib/scoring";
 import { seedCandidates, seedMatchups } from "@/lib/seedData";
 import type { Candidate, Matchup, Party } from "@/lib/types";
+import { Tooltip } from "@/components/Tooltip";
+import { Bar } from "react-chartjs-2";
 
 export default function VoteometerApp() {
   const [userParty, setUserParty] = useState<Party>("Democrat");
@@ -14,6 +16,7 @@ export default function VoteometerApp() {
   const [matchups, setMatchups] = useState<Matchup[]>(seedMatchups);
   const [questions, setQuestions] = useState<{ question: string; id: string }[]>([]);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | number>>({});
+  const [darkMode, setDarkMode] = useState(false);
 
   const democrats = candidates.filter((candidate) => candidate.party === "Democrat");
   const republicans = candidates.filter((candidate) => candidate.party === "Republican");
@@ -83,6 +86,20 @@ export default function VoteometerApp() {
     setQuestions((prevQuestions) => [...prevQuestions, ...newQuestions]);
   };
 
+  const validateProbability = (value) => {
+    if (value < 0 || value > 100) {
+      alert("Please enter a probability between 0 and 100.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleProbabilityInput = (questionId, value) => {
+    if (validateProbability(value)) {
+      setSelectedAnswers((prev) => ({ ...prev, [questionId]: value }));
+    }
+  };
+
   const calculatePowerNumbers = useMemo(() => {
     return candidates.map((candidate) => {
       const candidateAnswers = Object.entries(selectedAnswers).filter(([question]) =>
@@ -112,132 +129,173 @@ export default function VoteometerApp() {
       , { id: "", name: "", party: userParty, rating: 0, powerNumber: 0 }); // Default to a valid candidate object
   }, [calculatePowerNumbers, userParty]);
 
+  const toggleDarkMode = () => {
+    setDarkMode((prev) => !prev);
+  };
+
+  const powerNumberData = {
+    labels: candidates.map((candidate) => candidate.name),
+    datasets: [
+      {
+        label: "Power Numbers",
+        data: candidates.map((candidate) => candidate.powerNumber),
+        backgroundColor: "rgba(75, 192, 192, 0.2)",
+        borderColor: "rgba(75, 192, 192, 1)",
+        borderWidth: 1,
+      },
+    ],
+  };
+
   return (
-    <main className="min-h-screen p-6">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">Voteometer</h1>
-          <p className="mt-2 max-w-3xl text-slate-600">
-            Compare how much you like each candidate with how likely they are to win.
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-3 text-sm font-medium text-slate-700">Choose your party</div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => setUserParty("Democrat")}
-              className={`rounded-lg px-4 py-2 ${
-                userParty === "Democrat"
-                  ? "bg-slate-900 text-white"
-                  : "border border-slate-300 bg-white"
-              }`}
-            >
-              Democrat
-            </button>
-            <button
-              onClick={() => setUserParty("Republican")}
-              className={`rounded-lg px-4 py-2 ${
-                userParty === "Republican"
-                  ? "bg-slate-900 text-white"
-                  : "border border-slate-300 bg-white"
-              }`}
-            >
-              Republican
-            </button>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-3 text-sm font-medium text-slate-700">{userParty} candidates</div>
+    <div className={darkMode ? "dark" : ""}>
+      <button onClick={toggleDarkMode} className="dark-mode-toggle">
+        {darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+      </button>
+      <main className="min-h-screen p-6">
+        <div className="mx-auto max-w-7xl space-y-6">
           <div>
-            <button
-              onClick={() => {
-                const candidateName = prompt("Enter candidate name:");
-                if (candidateName) {
-                  handleAddCandidate(userParty, candidateName);
-                }
-              }}
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
-            >
-              Add candidate
-            </button>
-            <ul>
-              {candidates
-                .filter((candidate) => candidate.party === userParty)
-                .map((candidate) => (
-                  <li key={candidate.id} className="flex items-center gap-3">
-                    <span>{candidate.name}</span>
-                    <button
-                      onClick={() =>
-                        setCandidates((prev) =>
-                          prev.filter((c) => c.id !== candidate.id)
-                        )
+            <h1 className="text-4xl font-bold tracking-tight">Voteometer</h1>
+            <p className="mt-2 max-w-3xl text-slate-600">
+              Compare how much you like each candidate with how likely they are to win.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-3 text-sm font-medium text-slate-700">Choose your party</div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setUserParty("Democrat")}
+                className={`rounded-lg px-4 py-2 ${
+                  userParty === "Democrat"
+                    ? "bg-slate-900 text-white"
+                    : "border border-slate-300 bg-white"
+                }`}
+              >
+                Democrat
+              </button>
+              <button
+                onClick={() => setUserParty("Republican")}
+                className={`rounded-lg px-4 py-2 ${
+                  userParty === "Republican"
+                    ? "bg-slate-900 text-white"
+                    : "border border-slate-300 bg-white"
+                }`}
+              >
+                Republican
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mb-3 text-sm font-medium text-slate-700">{userParty} candidates</div>
+            <div>
+              <button
+                onClick={() => {
+                  const candidateName = prompt("Enter candidate name:");
+                  if (candidateName) {
+                    handleAddCandidate(userParty, candidateName);
+                  }
+                }}
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
+              >
+                Add candidate
+              </button>
+              <ul>
+                {candidates
+                  .filter((candidate) => candidate.party === userParty)
+                  .map((candidate) => (
+                    <li key={candidate.id} className="flex items-center gap-3">
+                      <span>{candidate.name}</span>
+                      <button
+                        onClick={() =>
+                          setCandidates((prev) =>
+                            prev.filter((c) => c.id !== candidate.id)
+                          )
+                        }
+                        className="text-sm text-red-500 hover:underline"
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-medium text-slate-700">Answer the questions</h2>
+            <ul className="mt-4 space-y-6">
+              {questions.map((q) => (
+                <li key={q.id} className="flex flex-col">
+                  <span className="text-sm text-slate-700">{q.question}</span>
+                  {q.question.includes("rate") ? (
+                    <div className="flex gap-2">
+                      {[...Array(11).keys()].map((value) => (
+                        <label key={value}>
+                          <input
+                            type="radio"
+                            name={q.id}
+                            value={value}
+                            onChange={() => handleAnswerChange(q.id, value)}
+                          />
+                          {value}
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <input
+                      type="number"
+                      name={q.id}
+                      onChange={(e) =>
+                        handleAnswerChange(q.id, parseFloat(e.target.value) || 0)
                       }
-                      className="text-sm text-red-500 hover:underline"
-                    >
-                      Remove
-                    </button>
-                  </li>
-                ))}
+                      className="w-20 rounded-md border border-slate-300 p-2 text-sm"
+                    />
+                  )}
+                </li>
+              ))}
             </ul>
           </div>
-        </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-medium text-slate-700">Answer the questions</h2>
-          <ul className="mt-4 space-y-6">
-            {questions.map((q) => (
-              <li key={q.id} className="flex flex-col">
-                <span className="text-sm text-slate-700">{q.question}</span>
-                {q.question.includes("rate") ? (
-                  <div className="flex gap-2">
-                    {[...Array(11).keys()].map((value) => (
-                      <label key={value}>
-                        <input
-                          type="radio"
-                          name={q.id}
-                          value={value}
-                          onChange={() => handleAnswerChange(q.id, value)}
-                        />
-                        {value}
-                      </label>
-                    ))}
-                  </div>
-                ) : (
-                  <input
-                    type="number"
-                    name={q.id}
-                    onChange={(e) =>
-                      handleAnswerChange(q.id, parseFloat(e.target.value) || 0)
-                    }
-                    className="w-20 rounded-md border border-slate-300 p-2 text-sm"
-                  />
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-medium text-slate-700">Recommended Candidate</h2>
+            {recommendedCandidate ? (
+              <div className="mt-4">
+                <p className="text-sm text-slate-700">
+                  Based on your answers, we recommend:
+                </p>
+                <p className="mt-2 text-xl font-bold text-slate-900">
+                  {recommendedCandidate.name} ({recommendedCandidate.party})
+                </p>
+                <p className="text-sm text-slate-600">
+                  Power Number: {recommendedCandidate.powerNumber.toFixed(2)}
+                </p>
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-slate-600">No recommendation available.</p>
+            )}
+          </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-medium text-slate-700">Recommended Candidate</h2>
-          {recommendedCandidate ? (
-            <div className="mt-4">
-              <p className="text-sm text-slate-700">
-                Based on your answers, we recommend:
-              </p>
-              <p className="mt-2 text-xl font-bold text-slate-900">
-                {recommendedCandidate.name} ({recommendedCandidate.party})
-              </p>
-              <p className="text-sm text-slate-600">
-                Power Number: {recommendedCandidate.powerNumber.toFixed(2)}
-              </p>
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-slate-600">No recommendation available.</p>
-          )}
+          <div className="math-description">
+            <h2>How the Math is Calculated</h2>
+            <p>
+              The Power Number is calculated using the following formula:
+              <ul>
+                <li>Column 1: [Candidate Strength] x [Opponent Primary Win Probability] x [General Election Win Probability]</li>
+                <li>Column 2: [Candidate Strength] x [Opponent Primary Win Probability] x [General Election Win Probability]</li>
+                <li>Column 3: [Opponent Strength] x [Opponent Primary Win Probability] x [General Election Win Probability]</li>
+                <li>Column 4: [Opponent Strength] x [Opponent Primary Win Probability] x [Opponent General Election Win Probability]</li>
+              </ul>
+              The candidate with the highest Power Number is recommended.
+            </p>
+          </div>
+
+          <div>
+            <h2>Power Number Comparison</h2>
+            <Bar data={powerNumberData} />
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
