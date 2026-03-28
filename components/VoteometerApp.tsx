@@ -13,7 +13,7 @@ export default function VoteometerApp() {
   const [candidates, setCandidates] = useState<Candidate[]>(seedCandidates);
   const [matchups, setMatchups] = useState<Matchup[]>(seedMatchups);
   const [questions, setQuestions] = useState<string[]>([]);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | number>>({});
 
   const democrats = candidates.filter((candidate) => candidate.party === "Democrat");
   const republicans = candidates.filter((candidate) => candidate.party === "Republican");
@@ -48,7 +48,7 @@ export default function VoteometerApp() {
     setSelectedAnswers({}); // Reset answers when party changes
   }, [userParty]);
 
-  const handleAnswerChange = (question: string, answer: string) => {
+  const handleAnswerChange = (question: string, answer: number) => {
     setSelectedAnswers((prev) => ({ ...prev, [question]: answer }));
   };
 
@@ -108,26 +108,22 @@ export default function VoteometerApp() {
               <li key={question} className="flex flex-col">
                 <span className="text-sm text-slate-700">{question}</span>
                 <div className="mt-2 flex gap-3">
-                  <button
-                    onClick={() => handleAnswerChange(question, "Yes")}
-                    className={`rounded-lg px-4 py-2 ${
-                      selectedAnswers[question] === "Yes"
-                        ? "bg-slate-900 text-white"
-                        : "border border-slate-300 bg-white"
-                    }`}
-                  >
-                    Yes
-                  </button>
-                  <button
-                    onClick={() => handleAnswerChange(question, "No")}
-                    className={`rounded-lg px-4 py-2 ${
-                      selectedAnswers[question] === "No"
-                        ? "bg-slate-900 text-white"
-                        : "border border-slate-300 bg-white"
-                    }`}
-                  >
-                    No
-                  </button>
+                  {[...Array(11)].map((_, i) => {
+                    const value = i - 5;
+                    return (
+                      <button
+                        key={value}
+                        onClick={() => handleAnswerChange(question, value)}
+                        className={`rounded-lg px-4 py-2 ${
+                          selectedAnswers[question] === value
+                            ? "bg-slate-900 text-white"
+                            : "border border-slate-300 bg-white"
+                        }`}
+                      >
+                        {value}
+                      </button>
+                    );
+                  })}
                 </div>
               </li>
             ))}
