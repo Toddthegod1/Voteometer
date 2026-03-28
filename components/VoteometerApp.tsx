@@ -40,10 +40,16 @@ export default function VoteometerApp() {
   };
 
   useEffect(() => {
-    // Update questions when the party changes
+    // Preserve existing questions for added candidates
     const defaultQuestions = partyQuestions[userParty].map((q) => ({ question: q, id: q }));
-    setQuestions(defaultQuestions);
-    setSelectedAnswers({}); // Reset answers when switching parties
+    const existingQuestions = questions.filter((q) => !defaultQuestions.some((dq) => dq.id === q.id));
+    setQuestions([...defaultQuestions, ...existingQuestions]);
+    setSelectedAnswers((prev) => {
+      const filteredAnswers = Object.keys(prev)
+        .filter((key) => defaultQuestions.some((dq) => dq.id === key))
+        .reduce((acc, key) => ({ ...acc, [key]: prev[key] }), {});
+      return filteredAnswers;
+    });
   }, [userParty]);
 
   const handleAnswerChange = (question: string, answer: number) => {

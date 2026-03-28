@@ -1,5 +1,6 @@
 import type { Candidate, Matchup } from "@/lib/types";
 import { Tooltip } from "@/components/Tooltip"; // Assuming a Tooltip component exists
+import { useMemo } from "react";
 
 type Props = {
   democrats: Candidate[];
@@ -18,6 +19,27 @@ export default function MatchupEditor({
   matchups,
   onChange,
 }: Props) {
+  const calculatePowerNumber = useMemo(() => {
+    return democrats.concat(republicans).map((candidate) => {
+      const relevantMatchups = matchups.filter(
+        (matchup) =>
+          matchup.democratCandidateId === candidate.id ||
+          matchup.republicanCandidateId === candidate.id
+      );
+      const totalWinProb = relevantMatchups.reduce((sum, matchup) => {
+        if (matchup.democratCandidateId === candidate.id) {
+          return sum + matchup.democratWinProb;
+        } else {
+          return sum + (100 - matchup.democratWinProb); // Calculate Republican win probability dynamically
+        }
+      }, 0);
+      return {
+        ...candidate,
+        powerNumber: totalWinProb / relevantMatchups.length || 0,
+      };
+    });
+  }, [democrats, republicans, matchups]);
+
   const handleMatchupChange = (
     party: "Democrat" | "Republican",
     candidateId: string,
