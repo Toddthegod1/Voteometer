@@ -73,20 +73,13 @@ export default function VoteometerApp() {
   }, [calculatePowerNumbers]);
 
   useMemo(() => {
-    // Update questions based on the selected party without resetting candidates
+    // Update questions based on the selected party
     setQuestions(
       partyQuestions[userParty].map((q) => ({ question: q, id: q }))
     );
 
-    // Preserve candidates and reset answers only
-    setSelectedAnswers((prevAnswers) => {
-      const filteredAnswers = Object.fromEntries(
-        Object.entries(prevAnswers).filter(([key]) =>
-          partyQuestions[userParty].some((q) => q === key)
-        )
-      );
-      return filteredAnswers;
-    });
+    // Reset answers when party changes, but do not affect candidates
+    setSelectedAnswers({});
   }, [userParty]);
 
   const handleAnswerChange = (question: string, answer: number) => {
