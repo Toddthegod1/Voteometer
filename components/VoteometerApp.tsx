@@ -81,6 +81,17 @@ export default function VoteometerApp() {
     setSelectedAnswers((prev) => ({ ...prev, [question]: answer }));
   };
 
+  const handleAddCandidate = (party: string, candidateName: string) => {
+    const newCandidate = { name: candidateName, party, rating: 0 };
+    setCandidates((prev) => [...prev, newCandidate]);
+
+    // Add a new question for the candidate
+    setQuestions((prevQuestions) => [
+      ...prevQuestions,
+      { question: `How much do you like ${candidateName}?`, id: candidateName },
+    ]);
+  };
+
   return (
     <main className="min-h-screen p-6">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -120,6 +131,40 @@ export default function VoteometerApp() {
             >
               Republican
             </button>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-3 text-sm font-medium text-slate-700">{userParty} candidates</div>
+          <div>
+            <button
+              onClick={() => {
+                const candidateName = prompt("Enter candidate name:");
+                if (candidateName) {
+                  handleAddCandidate(userParty, candidateName);
+                }
+              }}
+            >
+              Add candidate
+            </button>
+            <ul>
+              {candidates
+                .filter((candidate) => candidate.party === userParty)
+                .map((candidate) => (
+                  <li key={candidate.id} className="flex items-center gap-3">
+                    <span>{candidate.name}</span>
+                    <button
+                      onClick={() =>
+                        setCandidates((prev) =>
+                          prev.filter((c) => c.id !== candidate.id)
+                        )
+                      }
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+            </ul>
           </div>
         </div>
 
