@@ -73,12 +73,20 @@ export default function VoteometerApp() {
   }, [calculatePowerNumbers]);
 
   useMemo(() => {
-    // Replace questions with only the relevant questions for the selected party
+    // Update questions based on the selected party without resetting candidates
     setQuestions(
       partyQuestions[userParty].map((q) => ({ question: q, id: q }))
     );
 
-    setSelectedAnswers({}); // Reset answers when party changes
+    // Preserve candidates and reset answers only
+    setSelectedAnswers((prevAnswers) => {
+      const filteredAnswers = Object.fromEntries(
+        Object.entries(prevAnswers).filter(([key]) =>
+          partyQuestions[userParty].some((q) => q === key)
+        )
+      );
+      return filteredAnswers;
+    });
   }, [userParty]);
 
   const handleAnswerChange = (question: string, answer: number) => {
