@@ -84,15 +84,27 @@ export default function VoteometerApp() {
     setSelectedAnswers((prev) => ({ ...prev, [question]: answer }));
   };
 
+  // Fix for preserving candidates of the other party when adding a new candidate
   const handleAddCandidate = (party: string, candidateName: string) => {
     const newCandidate = { id: crypto.randomUUID(), name: candidateName, party: party as Party, rating: 0 };
-    setCandidates((prev) => [...prev, newCandidate]);
+    setCandidates((prev) => {
+      const updatedCandidates = [...prev, newCandidate];
 
-    // Fix for setQuestions: Update questions state type to accept objects with question and id properties
-    setQuestions((prevQuestions: { question: string; id: string }[]) => [
-      ...prevQuestions,
-      { question: `How much do you like ${candidateName}?`, id: candidateName },
-    ]);
+      // Add head-to-head odds questions for the new candidate
+      const opposingParty = party === "Democrat" ? "Republican" : "Democrat";
+      const opposingCandidates = updatedCandidates.filter(
+        (candidate) => candidate.party === opposingParty
+      );
+
+      const newQuestions = opposingCandidates.map((opponent) => ({
+        question: `What are the odds of ${candidateName} beating ${opponent.name}?`,
+        id: `${candidateName}-vs-${opponent.name}`,
+      }));
+
+      setQuestions((prevQuestions) => [...prevQuestions, ...newQuestions]);
+
+      return updatedCandidates;
+    });
   };
 
   return (
