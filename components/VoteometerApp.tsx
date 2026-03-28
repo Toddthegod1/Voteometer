@@ -60,4 +60,11 @@ export default function VoteometerApp() {
           <CandidateEditor
             title="Democratic candidates"
             candidates={democrats}
+            onChange={setCandidates}
+            party="Democrat"
+          />
+        </div>
+      </div>
+    </main>
+  );
 }

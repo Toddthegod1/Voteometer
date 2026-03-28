@@ -68,4 +68,21 @@ export default function CandidateEditor({ title, candidates, onChange, party }: 
               className="rounded-lg border border-slate-300 px-3 py-2"
               value={candidate.name}
               onChange={(e) => updateCandidate(candidate.id, "name", e.target.value)}
+            />
+            <input
+              className="rounded-lg border border-slate-300 px-3 py-2"
+              value={candidate.rating}
+              onChange={(e) => updateCandidate(candidate.id, "rating", e.target.value)}
+            />
+            <button
+              onClick={() => removeCandidate(candidate.id)}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
+            >
+              Remove
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
