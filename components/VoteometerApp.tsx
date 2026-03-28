@@ -18,15 +18,6 @@ export default function VoteometerApp() {
   const democrats = candidates.filter((candidate) => candidate.party === "Democrat");
   const republicans = candidates.filter((candidate) => candidate.party === "Republican");
 
-  const scores = useMemo(() => {
-    return calculateScores(userParty, candidates, matchups);
-  }, [userParty, candidates, matchups]);
-
-  useMemo(() => {
-    setQuestions(partyQuestions[userParty]);
-    setSelectedAnswers({}); // Reset answers when party changes
-  }, [userParty]);
-
   const partyQuestions: Record<Party, string[]> = {
     Democrat: [
       "Do you support universal healthcare?",
@@ -37,6 +28,15 @@ export default function VoteometerApp() {
       "Should the Second Amendment be protected at all costs?",
     ],
   };
+
+  const scores = useMemo(() => {
+    return calculateScores(userParty, candidates, matchups);
+  }, [userParty, candidates, matchups]);
+
+  useMemo(() => {
+    setQuestions(partyQuestions[userParty]);
+    setSelectedAnswers({}); // Reset answers when party changes
+  }, [userParty]);
 
   const handleAnswerChange = (question: string, answer: string) => {
     setSelectedAnswers((prev) => ({ ...prev, [question]: answer }));
