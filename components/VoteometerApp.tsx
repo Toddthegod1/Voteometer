@@ -73,10 +73,12 @@ export default function VoteometerApp() {
   }, [calculatePowerNumbers]);
 
   useMemo(() => {
-    // Fix for setting questions: Map partyQuestions to match the updated questions state type
-    setQuestions(
-      partyQuestions[userParty].map((q) => ({ question: q, id: q }))
-    );
+    // Update questions based on the selected party without resetting candidates
+    setQuestions((prevQuestions) => {
+      const newQuestions = partyQuestions[userParty].map((q) => ({ question: q, id: q }));
+      return [...prevQuestions.filter((q) => !partyQuestions[userParty].some((pq) => pq === q.question)), ...newQuestions];
+    });
+
     setSelectedAnswers({}); // Reset answers when party changes
   }, [userParty]);
 
