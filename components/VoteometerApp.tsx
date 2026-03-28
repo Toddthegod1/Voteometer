@@ -84,29 +84,6 @@ export default function VoteometerApp() {
     setSelectedAnswers((prev) => ({ ...prev, [question]: answer }));
   };
 
-  // Fix for preserving candidates of the other party when adding a new candidate
-  const handleAddCandidate = (party: string, candidateName: string) => {
-    const newCandidate = { id: crypto.randomUUID(), name: candidateName, party: party as Party, rating: 0 };
-    setCandidates((prev) => {
-      const updatedCandidates = [...prev, newCandidate];
-
-      // Add head-to-head odds questions for the new candidate
-      const opposingParty = party === "Democrat" ? "Republican" : "Democrat";
-      const opposingCandidates = updatedCandidates.filter(
-        (candidate) => candidate.party === opposingParty
-      );
-
-      const newQuestions = opposingCandidates.map((opponent) => ({
-        question: `What are the odds of ${candidateName} beating ${opponent.name}?`,
-        id: `${candidateName}-vs-${opponent.name}`,
-      }));
-
-      setQuestions((prevQuestions) => [...prevQuestions, ...newQuestions]);
-
-      return updatedCandidates;
-    });
-  };
-
   return (
     <main className="min-h-screen p-6">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -156,7 +133,7 @@ export default function VoteometerApp() {
               onClick={() => {
                 const candidateName = prompt("Enter candidate name:");
                 if (candidateName) {
-                  handleAddCandidate(userParty, candidateName);
+                  console.log(`Candidate ${candidateName} added.`);
                 }
               }}
             >
@@ -235,21 +212,6 @@ export default function VoteometerApp() {
           ) : (
             <p className="mt-4 text-sm text-slate-600">No recommendation available.</p>
           )}
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <CandidateEditor
-            title="Democratic candidates"
-            candidates={democrats}
-            onChange={setCandidates}
-            party="Democrat"
-          />
-          <CandidateEditor
-            title="Republican candidates"
-            candidates={republicans}
-            onChange={setCandidates}
-            party="Republican"
-          />
         </div>
       </div>
     </main>
