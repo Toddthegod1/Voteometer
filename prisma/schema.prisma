@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Party {
+  DEMOCRAT
+  REPUBLICAN
+}
+
+model Candidate {
+  id        String   @id @default(cuid())
+  name      String
+  party     Party
+  rating    Float
+  createdAt DateTime @default(now())
+}
+
+model Matchup {
+  id                    String   @id @default(cuid())
+  democratCandidateId   String
+  republicanCandidateId String
+  democratWinProb       Float
+  createdAt             DateTime @default(now())
+}
