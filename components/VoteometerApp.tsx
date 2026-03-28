@@ -161,6 +161,7 @@ export default function VoteometerApp() {
               onClick={() => {
                 const candidateName = prompt("Enter candidate name:");
                 if (candidateName) {
+                  handleAddCandidate(userParty, candidateName);
                   console.log(`Candidate ${candidateName} added.`);
                 }
               }}
