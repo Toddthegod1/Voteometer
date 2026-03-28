@@ -74,7 +74,7 @@ export default function MatchupEditor({
                         }
                         onChange={(e) =>
                           handleMatchupChange(
-                            party,
+                            party as "Democrat" | "Republican", // Explicitly cast party
                             candidate.id,
                             opponent.id,
                             parseFloat(e.target.value) || 0
