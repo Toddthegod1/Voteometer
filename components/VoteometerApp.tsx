@@ -40,10 +40,9 @@ export default function VoteometerApp() {
   };
 
   useEffect(() => {
-    // Preserve existing questions for added candidates
+    // Filter questions and reset answers for the selected party
     const defaultQuestions = partyQuestions[userParty].map((q) => ({ question: q, id: q }));
-    const existingQuestions = questions.filter((q) => !defaultQuestions.some((dq) => dq.id === q.id));
-    setQuestions([...defaultQuestions, ...existingQuestions]);
+    setQuestions(defaultQuestions);
     setSelectedAnswers((prev) => {
       const filteredAnswers = Object.keys(prev)
         .filter((key) => defaultQuestions.some((dq) => dq.id === key))
