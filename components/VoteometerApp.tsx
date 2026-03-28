@@ -12,7 +12,7 @@ export default function VoteometerApp() {
   const [userParty, setUserParty] = useState<Party>("Democrat");
   const [candidates, setCandidates] = useState<Candidate[]>(seedCandidates);
   const [matchups, setMatchups] = useState<Matchup[]>(seedMatchups);
-  const [questions, setQuestions] = useState<string[]>([]);
+  const [questions, setQuestions] = useState<{ question: string; id: string }[]>([]);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | number>>({});
 
   const democrats = candidates.filter((candidate) => candidate.party === "Democrat");
@@ -73,7 +73,10 @@ export default function VoteometerApp() {
   }, [calculatePowerNumbers]);
 
   useMemo(() => {
-    setQuestions(partyQuestions[userParty]);
+    // Fix for setting questions: Map partyQuestions to match the updated questions state type
+    setQuestions(
+      partyQuestions[userParty].map((q) => ({ question: q, id: q }))
+    );
     setSelectedAnswers({}); // Reset answers when party changes
   }, [userParty]);
 
@@ -82,11 +85,11 @@ export default function VoteometerApp() {
   };
 
   const handleAddCandidate = (party: string, candidateName: string) => {
-    const newCandidate = { name: candidateName, party, rating: 0 };
+    const newCandidate = { id: crypto.randomUUID(), name: candidateName, party: party as Party, rating: 0 };
     setCandidates((prev) => [...prev, newCandidate]);
 
-    // Add a new question for the candidate
-    setQuestions((prevQuestions) => [
+    // Fix for setQuestions: Update questions state type to accept objects with question and id properties
+    setQuestions((prevQuestions: { question: string; id: string }[]) => [
       ...prevQuestions,
       { question: `How much do you like ${candidateName}?`, id: candidateName },
     ]);
@@ -171,37 +174,32 @@ export default function VoteometerApp() {
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-medium text-slate-700">Answer the questions</h2>
           <ul className="mt-4 space-y-6">
-            {questions.map((question) => (
-              <li key={question} className="flex flex-col">
-                <span className="text-sm text-slate-700">{question}</span>
-                {question.includes("rate") ? (
-                  <div className="mt-2 flex gap-2">
-                    {Array.from({ length: 21 }, (_, i) => i - 10).map((value) => (
-                      <label key={value} className="flex items-center gap-1">
+            {questions.map((q) => (
+              <li key={q.id} className="flex flex-col">
+                <span className="text-sm text-slate-700">{q.question}</span>
+                {q.question.includes("rate") ? (
+                  <div className="flex gap-2">
+                    {[...Array(11).keys()].map((value) => (
+                      <label key={value}>
                         <input
                           type="radio"
-                          name={question}
+                          name={q.id}
                           value={value}
-                          onChange={() => handleAnswerChange(question, value)}
+                          onChange={() => handleAnswerChange(q.id, value)}
                         />
                         {value}
                       </label>
                     ))}
                   </div>
                 ) : (
-                  <div className="mt-2 flex items-center gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="1"
-                      onChange={(e) =>
-                        handleAnswerChange(question, parseFloat(e.target.value) || 0)
-                      }
-                      className="w-20 rounded-md border border-slate-300 p-2 text-sm"
-                    />
-                    <span>%</span>
-                  </div>
+                  <input
+                    type="number"
+                    name={q.id}
+                    onChange={(e) =>
+                      handleAnswerChange(q.id, parseFloat(e.target.value) || 0)
+                    }
+                    className="w-20 rounded-md border border-slate-300 p-2 text-sm"
+                  />
                 )}
               </li>
             ))}
