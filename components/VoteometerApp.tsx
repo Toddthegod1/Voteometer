@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import CandidateEditor from "@/components/CandidateEditor";
 import MatchupEditor from "@/components/MatchupEditor";
 import ResultsPanel from "@/components/ResultsPanel";
@@ -39,56 +39,12 @@ export default function VoteometerApp() {
     ],
   };
 
-  const scores = useMemo(() => {
-    return calculateScores(userParty, candidates, matchups);
-  }, [userParty, candidates, matchups]);
-
-  const calculatePowerNumbers = useMemo(() => {
-    const updatedCandidates = candidates.map((candidate) => {
-      const candidateAnswers = Object.entries(selectedAnswers).filter(([question]) =>
-        question.includes(candidate.name)
-      );
-
-      let powerNumber = 0;
-      candidateAnswers.forEach(([question, value]) => {
-        if (typeof value === "number") {
-          powerNumber += value;
-        }
-      });
-
-      return {
-        ...candidate,
-        powerNumber,
-      };
-    });
-
-    return updatedCandidates;
-  }, [candidates, selectedAnswers]);
-
-  const recommendedCandidate = useMemo(() => {
-    if (!calculatePowerNumbers.length) return null;
-    return calculatePowerNumbers.reduce((best, candidate) =>
-      candidate.powerNumber > best.powerNumber ? candidate : best
-    );
-  }, [calculatePowerNumbers]);
-
-  useMemo(() => {
-    // Preserve existing questions and add default questions for the selected party
-    setQuestions((prevQuestions) => {
-      const defaultQuestions = partyQuestions[userParty].map((q) => ({ question: q, id: q }));
-
-      // Filter out questions that are not related to the current party
-      const filteredQuestions = prevQuestions.filter((q) =>
-        candidates.some((candidate) => q.id.includes(candidate.name))
-      );
-
-      // Combine filtered questions with default questions
-      return [...filteredQuestions, ...defaultQuestions];
-    });
-
-    // Reset answers when party changes, but do not affect candidates
-    setSelectedAnswers({});
-  }, [userParty, candidates]);
+  useEffect(() => {
+    // Update questions when the party changes
+    const defaultQuestions = partyQuestions[userParty].map((q) => ({ question: q, id: q }));
+    setQuestions(defaultQuestions);
+    setSelectedAnswers({}); // Reset answers when switching parties
+  }, [userParty]);
 
   const handleAnswerChange = (question: string, answer: number) => {
     setSelectedAnswers((prev) => ({ ...prev, [question]: answer }));
@@ -123,6 +79,33 @@ export default function VoteometerApp() {
     setQuestions((prevQuestions) => [...prevQuestions, ...newQuestions]);
   };
 
+  const calculatePowerNumbers = useMemo(() => {
+    return candidates.map((candidate) => {
+      const candidateAnswers = Object.entries(selectedAnswers).filter(([question]) =>
+        question.includes(candidate.name)
+      );
+
+      let powerNumber = 0;
+      candidateAnswers.forEach(([question, value]) => {
+        if (typeof value === "number") {
+          powerNumber += value;
+        }
+      });
+
+      return {
+        ...candidate,
+        powerNumber,
+      };
+    });
+  }, [candidates, selectedAnswers]);
+
+  const recommendedCandidate = useMemo(() => {
+    if (!calculatePowerNumbers.length) return null;
+    return calculatePowerNumbers.reduce((best, candidate) =>
+      candidate.powerNumber > (best.powerNumber || 0) ? candidate : best
+    );
+  }, [calculatePowerNumbers]);
+
   return (
     <main className="min-h-screen p-6">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -137,10 +120,7 @@ export default function VoteometerApp() {
           <div className="mb-3 text-sm font-medium text-slate-700">Choose your party</div>
           <div className="flex gap-3">
             <button
-              onClick={() => {
-                setUserParty("Democrat");
-                console.log("User selected: Democrat");
-              }}
+              onClick={() => setUserParty("Democrat")}
               className={`rounded-lg px-4 py-2 ${
                 userParty === "Democrat"
                   ? "bg-slate-900 text-white"
@@ -150,10 +130,7 @@ export default function VoteometerApp() {
               Democrat
             </button>
             <button
-              onClick={() => {
-                setUserParty("Republican");
-                console.log("User selected: Republican");
-              }}
+              onClick={() => setUserParty("Republican")}
               className={`rounded-lg px-4 py-2 ${
                 userParty === "Republican"
                   ? "bg-slate-900 text-white"
@@ -173,9 +150,9 @@ export default function VoteometerApp() {
                 const candidateName = prompt("Enter candidate name:");
                 if (candidateName) {
                   handleAddCandidate(userParty, candidateName);
-                  console.log(`Candidate ${candidateName} added.`);
                 }
               }}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
             >
               Add candidate
             </button>
@@ -191,6 +168,7 @@ export default function VoteometerApp() {
                           prev.filter((c) => c.id !== candidate.id)
                         )
                       }
+                      className="text-sm text-red-500 hover:underline"
                     >
                       Remove
                     </button>
