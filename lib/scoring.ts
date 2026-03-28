@@ -9,10 +9,8 @@ export function calculateScores(
   const opponentParty: Party = userParty === "Democrat" ? "Republican" : "Democrat";
   const opponentCandidates = candidates.filter((candidate) => candidate.party === opponentParty);
 
-  const opponentPrimaryProb = opponentCandidates.length > 0 ? 1 / opponentCandidates.length : 0;
-
   return ownCandidates.map((candidate) => {
-    let score = 0;
+    let powerNumber = 0;
     const details: CandidateScore["details"] = [];
 
     for (const opponent of opponentCandidates) {
@@ -23,15 +21,28 @@ export function calculateScores(
       );
 
       if (matchup) {
-        const contribution =
+        const ownWinProb =
           matchup.democratCandidateId === candidate.id
             ? matchup.democratWinProb
             : 1 - matchup.democratWinProb; // Republican win probability is 1 - Democrat win probability
-        score += contribution;
+
+        const oppWinProb = 1 - ownWinProb;
+        const ownStrength = candidate.rating;
+        const oppStrength = opponent.rating;
+
+        // Calculate contributions for all columns
+        const column1 = ownStrength * oppWinProb * ownWinProb;
+        const column2 = ownStrength * oppWinProb * ownWinProb;
+        const column3 = oppStrength * oppWinProb * ownWinProb;
+        const column4 = oppStrength * oppWinProb * oppWinProb;
+
+        const contribution = column1 + column2 + column3 + column4;
+        powerNumber += contribution;
+
         details.push({
           opponent: opponent.id,
-          ownWin: matchup.democratCandidateId === candidate.id ? matchup.democratWinProb : 1 - matchup.democratWinProb,
-          oppWin: matchup.democratCandidateId === candidate.id ? 1 - matchup.democratWinProb : matchup.democratWinProb,
+          ownWin: ownWinProb,
+          oppWin: oppWinProb,
           contribution,
         });
       }
@@ -40,10 +51,10 @@ export function calculateScores(
     return {
       id: candidate.id,
       name: candidate.name,
-      score,
+      score: powerNumber,
       details,
-      powerNumber: score * 100, // Example calculation for power number
-      party: candidate.party, // Include the party from the candidate
+      powerNumber,
+      party: candidate.party,
     };
   });
 }
