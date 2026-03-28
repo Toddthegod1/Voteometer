@@ -1,5 +1,6 @@
 "use client";
 
+import { Chart as ChartJS, CategoryScale, BarElement, LinearScale, Title, Tooltip } from "chart.js";
 import { useEffect, useState, useMemo } from "react";
 import CandidateEditor from "@/components/CandidateEditor";
 import MatchupEditor from "@/components/MatchupEditor";
@@ -7,8 +8,10 @@ import ResultsPanel from "@/components/ResultsPanel";
 import { calculateScores } from "@/lib/scoring";
 import { seedCandidates, seedMatchups } from "@/lib/seedData";
 import type { Candidate, Matchup, Party } from "@/lib/types";
-import { Tooltip } from "@/components/Tooltip";
 import { Bar } from "react-chartjs-2";
+
+// Register the required components
+ChartJS.register(CategoryScale, BarElement, LinearScale, Title, Tooltip);
 
 export default function VoteometerApp() {
   const [userParty, setUserParty] = useState<Party>("Democrat");
@@ -276,18 +279,15 @@ export default function VoteometerApp() {
             )}
           </div>
 
-          <div className="math-description">
+          <div>
             <h2>How the Math is Calculated</h2>
-            <p>
-              The Power Number is calculated using the following formula:
-              <ul>
-                <li>Column 1: [Candidate Strength] x [Opponent Primary Win Probability] x [General Election Win Probability]</li>
-                <li>Column 2: [Candidate Strength] x [Opponent Primary Win Probability] x [General Election Win Probability]</li>
-                <li>Column 3: [Opponent Strength] x [Opponent Primary Win Probability] x [General Election Win Probability]</li>
-                <li>Column 4: [Opponent Strength] x [Opponent Primary Win Probability] x [Opponent General Election Win Probability]</li>
-              </ul>
-              The candidate with the highest Power Number is recommended.
-            </p>
+            <p>The Power Number is calculated using the following formula:</p>
+            <ul>
+              <li>Column 1: [Candidate Strength] x [Opponent Primary Win Probability] x [General Election Win Probability]</li>
+              <li>Column 2: [Candidate Strength] x [Opponent Primary Win Probability] x [General Election Win Probability]</li>
+              <li>Column 3: [Opponent Strength] x [Opponent Primary Win Probability] x [General Election Win Probability]</li>
+              <li>Column 4: [Opponent Strength] x [Opponent Primary Win Probability] x [Opponent General Election Win Probability]</li>
+            </ul>
           </div>
 
           <div>
