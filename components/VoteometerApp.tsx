@@ -34,7 +34,10 @@ export default function VoteometerApp() {
           <div className="mb-3 text-sm font-medium text-slate-700">Choose your party</div>
           <div className="flex gap-3">
             <button
-              onClick={() => setUserParty("Democrat")}
+              onClick={() => {
+                setUserParty("Democrat");
+                console.log("User selected: Democrat");
+              }}
               className={`rounded-lg px-4 py-2 ${
                 userParty === "Democrat"
                   ? "bg-slate-900 text-white"
@@ -44,7 +47,10 @@ export default function VoteometerApp() {
               Democrat
             </button>
             <button
-              onClick={() => setUserParty("Republican")}
+              onClick={() => {
+                setUserParty("Republican");
+                console.log("User selected: Republican");
+              }}
               className={`rounded-lg px-4 py-2 ${
                 userParty === "Republican"
                   ? "bg-slate-900 text-white"
