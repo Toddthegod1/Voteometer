@@ -94,10 +94,22 @@ export default function VoteometerApp() {
     setCandidates((prev) => [...prev, newCandidate]);
 
     // Add a question for the new candidate
-    setQuestions((prevQuestions) => [
-      ...prevQuestions,
+    const newQuestions = [
       { question: `On a scale of -10 to 10, how would you rate ${candidateName} as a candidate?`, id: candidateName },
-    ]);
+    ];
+
+    // Add head-to-head questions for the new candidate against opposing party candidates
+    const opposingParty = party === "Democrat" ? "Republican" : "Democrat";
+    const opposingCandidates = candidates.filter((c) => c.party === opposingParty);
+
+    opposingCandidates.forEach((opponent) => {
+      newQuestions.push({
+        question: `In ${candidateName} vs. ${opponent.name}, what is the probability that ${candidateName} wins?`,
+        id: `${candidateName}-vs-${opponent.name}`,
+      });
+    });
+
+    setQuestions((prevQuestions) => [...prevQuestions, ...newQuestions]);
   };
 
   return (
