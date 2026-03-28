@@ -5,6 +5,7 @@ export type Candidate = {
   name: string;
   party: Party;
   rating: number;
+  powerNumber?: number; // Added optional property for Power Number
 };
 
 export type Matchup = {
