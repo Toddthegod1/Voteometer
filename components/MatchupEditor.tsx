@@ -1,4 +1,5 @@
 import type { Candidate, Matchup } from "@/lib/types";
+import { Tooltip } from "@/components/Tooltip"; // Assuming a Tooltip component exists
 
 type Props = {
   democrats: Candidate[];
@@ -52,6 +53,7 @@ export default function MatchupEditor({
               <div key={candidate.id} className="space-y-2">
                 <h4 className="text-sm font-medium text-slate-600">
                   {candidate.name}
+                  <Tooltip text="This is the candidate's name." />
                 </h4>
                 <div className="space-y-2">
                   {(party === "Democrat" ? republicans : democrats).map((opponent) => (
@@ -61,6 +63,7 @@ export default function MatchupEditor({
                     >
                       <span className="text-sm text-slate-500">
                         {candidate.name} vs. {opponent.name}
+                        <Tooltip text="This matchup compares the two candidates." />
                       </span>
                       <input
                         type="number"
