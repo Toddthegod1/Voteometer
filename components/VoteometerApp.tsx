@@ -43,6 +43,35 @@ export default function VoteometerApp() {
     return calculateScores(userParty, candidates, matchups);
   }, [userParty, candidates, matchups]);
 
+  const calculatePowerNumbers = useMemo(() => {
+    const updatedCandidates = candidates.map((candidate) => {
+      const candidateAnswers = Object.entries(selectedAnswers).filter(([question]) =>
+        question.includes(candidate.name)
+      );
+
+      let powerNumber = 0;
+      candidateAnswers.forEach(([question, value]) => {
+        if (typeof value === "number") {
+          powerNumber += value;
+        }
+      });
+
+      return {
+        ...candidate,
+        powerNumber,
+      };
+    });
+
+    return updatedCandidates;
+  }, [candidates, selectedAnswers]);
+
+  const recommendedCandidate = useMemo(() => {
+    if (!calculatePowerNumbers.length) return null;
+    return calculatePowerNumbers.reduce((best, candidate) =>
+      candidate.powerNumber > best.powerNumber ? candidate : best
+    );
+  }, [calculatePowerNumbers]);
+
   useMemo(() => {
     setQuestions(partyQuestions[userParty]);
     setSelectedAnswers({}); // Reset answers when party changes
@@ -51,13 +80,6 @@ export default function VoteometerApp() {
   const handleAnswerChange = (question: string, answer: number) => {
     setSelectedAnswers((prev) => ({ ...prev, [question]: answer }));
   };
-
-  const recommendedCandidate = useMemo(() => {
-    if (!scores.length) return null;
-    return scores.reduce((best, candidate) =>
-      candidate.powerNumber > best.powerNumber ? candidate : best
-    );
-  }, [scores]);
 
   return (
     <main className="min-h-screen p-6">
