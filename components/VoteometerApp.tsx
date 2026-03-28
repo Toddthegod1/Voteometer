@@ -20,12 +20,22 @@ export default function VoteometerApp() {
 
   const partyQuestions: Record<Party, string[]> = {
     Democrat: [
-      "Do you support universal healthcare?",
-      "Should taxes be increased on the wealthy?",
+      "On a scale of -10 to 10, how would you rate Biden as president?",
+      "On a scale of -10 to 10, how would you rate Sanders as president?",
+      "In Biden vs. Sanders, what is the probability that Biden wins?",
+      "In Biden vs. Trump, what is the probability Biden wins?",
+      "In Biden vs. DeSantis, what is the probability Biden wins?",
+      "In Sanders vs. Trump, what is the probability Sanders wins?",
+      "In Sanders vs. DeSantis, what is the probability Sanders wins?",
     ],
     Republican: [
-      "Do you support lower corporate taxes?",
-      "Should the Second Amendment be protected at all costs?",
+      "On a scale of -10 to 10, how would you rate Trump as president?",
+      "On a scale of -10 to 10, how would you rate DeSantis as president?",
+      "In Trump vs. DeSantis, what is the probability that Trump wins?",
+      "In Trump vs. Biden, what is the probability Trump wins?",
+      "In Trump vs. Sanders, what is the probability Trump wins?",
+      "In DeSantis vs. Biden, what is the probability DeSantis wins?",
+      "In DeSantis vs. Sanders, what is the probability DeSantis wins?",
     ],
   };
 
