@@ -103,28 +103,39 @@ export default function VoteometerApp() {
 
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-medium text-slate-700">Answer the questions</h2>
-          <ul className="mt-4 space-y-4">
+          <ul className="mt-4 space-y-6">
             {questions.map((question) => (
               <li key={question} className="flex flex-col">
                 <span className="text-sm text-slate-700">{question}</span>
-                <div className="mt-2 flex gap-3">
-                  {[...Array(11)].map((_, i) => {
-                    const value = i - 5;
-                    return (
-                      <button
-                        key={value}
-                        onClick={() => handleAnswerChange(question, value)}
-                        className={`rounded-lg px-4 py-2 ${
-                          selectedAnswers[question] === value
-                            ? "bg-slate-900 text-white"
-                            : "border border-slate-300 bg-white"
-                        }`}
-                      >
+                {question.includes("rate") ? (
+                  <div className="mt-2 flex gap-2">
+                    {Array.from({ length: 21 }, (_, i) => i - 10).map((value) => (
+                      <label key={value} className="flex items-center gap-1">
+                        <input
+                          type="radio"
+                          name={question}
+                          value={value}
+                          onChange={() => handleAnswerChange(question, value)}
+                        />
                         {value}
-                      </button>
-                    );
-                  })}
-                </div>
+                      </label>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-2 flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      onChange={(e) =>
+                        handleAnswerChange(question, parseFloat(e.target.value) || 0)
+                      }
+                      className="w-20 rounded-md border border-slate-300 p-2 text-sm"
+                    />
+                    <span>%</span>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
