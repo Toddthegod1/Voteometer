@@ -69,16 +69,15 @@ export default function VoteometerApp() {
       { question: `On a scale of -10 to 10, how would you rate ${candidateName} as a candidate?`, id: candidateName },
     ];
 
-    // Add head-to-head questions for the new candidate against opposing party candidates
-    const opposingParty = party === "Democrat" ? "Republican" : "Democrat";
-    const opposingCandidates = candidates.filter((c) => c.party === opposingParty);
-
-    opposingCandidates.forEach((opponent) => {
-      const [first, second] = [candidateName, opponent.name].sort(); // Ensure consistent ordering
-      newQuestions.push({
-        question: `In ${first} vs. ${second}, what is the probability that ${first} wins?`,
-        id: `${first}-vs-${second}`,
-      });
+    // Add head-to-head questions for the new candidate against all other candidates
+    candidates.forEach((opponent) => {
+      if (opponent.id !== newCandidate.id) {
+        const [first, second] = [candidateName, opponent.name].sort(); // Ensure consistent ordering
+        newQuestions.push({
+          question: `In ${first} vs. ${second}, what is the probability that ${first} wins?`,
+          id: `${first}-vs-${second}`,
+        });
+      }
     });
 
     setQuestions((prevQuestions) => [...prevQuestions, ...newQuestions]);
