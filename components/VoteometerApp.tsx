@@ -73,14 +73,22 @@ export default function VoteometerApp() {
   }, [calculatePowerNumbers]);
 
   useMemo(() => {
-    // Update questions based on the selected party
-    setQuestions(
-      partyQuestions[userParty].map((q) => ({ question: q, id: q }))
-    );
+    // Preserve existing questions and add default questions for the selected party
+    setQuestions((prevQuestions) => {
+      const defaultQuestions = partyQuestions[userParty].map((q) => ({ question: q, id: q }));
+
+      // Filter out questions that are not related to the current party
+      const filteredQuestions = prevQuestions.filter((q) =>
+        candidates.some((candidate) => q.id.includes(candidate.name))
+      );
+
+      // Combine filtered questions with default questions
+      return [...filteredQuestions, ...defaultQuestions];
+    });
 
     // Reset answers when party changes, but do not affect candidates
     setSelectedAnswers({});
-  }, [userParty]);
+  }, [userParty, candidates]);
 
   const handleAnswerChange = (question: string, answer: number) => {
     setSelectedAnswers((prev) => ({ ...prev, [question]: answer }));
