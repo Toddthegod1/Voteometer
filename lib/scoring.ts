@@ -18,25 +18,23 @@ export function calculateScores(
     for (const opponent of opponentCandidates) {
       const matchup = matchups.find(
         (m) =>
-          m.democratCandidateId === (userParty === "Democrat" ? candidate.id : opponent.id) &&
-          m.republicanCandidateId === (userParty === "Republican" ? candidate.id : opponent.id)
+          (m.democratCandidateId === candidate.id && m.republicanCandidateId === opponent.id) ||
+          (m.republicanCandidateId === candidate.id && m.democratCandidateId === opponent.id)
       );
 
-      const democratWinProb = matchup ? matchup.democratWinProb / 100 : 0.5;
-      const ownWin = userParty === "Democrat" ? democratWinProb : 1 - democratWinProb;
-      const oppWin = 1 - ownWin;
-
-      const contribution =
-        opponentPrimaryProb * (ownWin * candidate.rating + oppWin * opponent.rating);
-
-      score += contribution;
-
-      details.push({
-        opponent: opponent.name,
-        ownWin,
-        oppWin,
-        contribution,
-      });
+      if (matchup) {
+        const contribution =
+          matchup.democratCandidateId === candidate.id
+            ? matchup.democratWinProb
+            : 1 - matchup.democratWinProb; // Republican win probability is 1 - Democrat win probability
+        score += contribution;
+        details.push({
+          opponent: opponent.id,
+          ownWin: matchup.democratCandidateId === candidate.id ? matchup.democratWinProb : 1 - matchup.democratWinProb,
+          oppWin: matchup.democratCandidateId === candidate.id ? 1 - matchup.democratWinProb : matchup.democratWinProb,
+          contribution,
+        });
+      }
     }
 
     return {
@@ -44,6 +42,8 @@ export function calculateScores(
       name: candidate.name,
       score,
       details,
+      powerNumber: score * 100, // Example calculation for power number
+      party: candidate.party, // Include the party from the candidate
     };
   });
 }

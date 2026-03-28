@@ -25,4 +25,6 @@ export type CandidateScore = {
   name: string;
   score: number;
   details: ScoreDetail[];
+  powerNumber: number; // Added property for "Power Number"
+  party: Party; // Added property for candidate's party
 };
