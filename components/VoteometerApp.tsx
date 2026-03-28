@@ -73,11 +73,10 @@ export default function VoteometerApp() {
   }, [calculatePowerNumbers]);
 
   useMemo(() => {
-    // Update questions based on the selected party without resetting candidates
-    setQuestions((prevQuestions) => {
-      const newQuestions = partyQuestions[userParty].map((q) => ({ question: q, id: q }));
-      return [...prevQuestions.filter((q) => !partyQuestions[userParty].some((pq) => pq === q.question)), ...newQuestions];
-    });
+    // Replace questions with only the relevant questions for the selected party
+    setQuestions(
+      partyQuestions[userParty].map((q) => ({ question: q, id: q }))
+    );
 
     setSelectedAnswers({}); // Reset answers when party changes
   }, [userParty]);
@@ -105,9 +104,10 @@ export default function VoteometerApp() {
     const opposingCandidates = candidates.filter((c) => c.party === opposingParty);
 
     opposingCandidates.forEach((opponent) => {
+      const [first, second] = [candidateName, opponent.name].sort(); // Ensure consistent ordering
       newQuestions.push({
-        question: `In ${candidateName} vs. ${opponent.name}, what is the probability that ${candidateName} wins?`,
-        id: `${candidateName}-vs-${opponent.name}`,
+        question: `In ${first} vs. ${second}, what is the probability that ${first} wins?`,
+        id: `${first}-vs-${second}`,
       });
     });
 
