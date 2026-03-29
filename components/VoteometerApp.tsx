@@ -155,11 +155,11 @@ export default function VoteometerApp() {
   };
 
   const powerNumberData = {
-    labels: candidates.map((candidate) => candidate.name),
+    labels: calculatePowerNumbers.map((candidate) => candidate.name),
     datasets: [
       {
         label: "Power Numbers",
-        data: candidates.map((candidate) => candidate.powerNumber),
+        data: calculatePowerNumbers.map((candidate) => candidate.powerNumber),
         backgroundColor: "rgba(75, 192, 192, 0.2)",
         borderColor: "rgba(75, 192, 192, 1)",
         borderWidth: 1,
@@ -173,28 +173,33 @@ export default function VoteometerApp() {
   }, [powerNumberData, darkMode]);
 
   return (
-    <div className={darkMode ? "dark" : ""}>
-      <button onClick={toggleDarkMode} className="dark-mode-toggle">
-        {darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-      </button>
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+      <div className="flex justify-end p-4">
+        <button
+          onClick={toggleDarkMode}
+          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+        >
+          {darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        </button>
+      </div>
       <main className="min-h-screen p-6">
         <div className="mx-auto max-w-7xl space-y-6">
           <div>
             <h1 className="text-4xl font-bold tracking-tight">Voteometer</h1>
-            <p className="mt-2 max-w-3xl text-slate-600">
+            <p className="mt-2 max-w-3xl text-slate-600 dark:text-slate-400">
               Compare how much you like each candidate with how likely they are to win.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-3 text-sm font-medium text-slate-700">Choose your party</div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <div className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300">Choose your party</div>
             <div className="flex gap-3">
               <button
                 onClick={() => setUserParty("Democrat")}
                 className={`rounded-lg px-4 py-2 ${
                   userParty === "Democrat"
-                    ? "bg-slate-900 text-white"
-                    : "border border-slate-300 bg-white"
+                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                    : "border border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
                 }`}
               >
                 Democrat
@@ -203,8 +208,8 @@ export default function VoteometerApp() {
                 onClick={() => setUserParty("Republican")}
                 className={`rounded-lg px-4 py-2 ${
                   userParty === "Republican"
-                    ? "bg-slate-900 text-white"
-                    : "border border-slate-300 bg-white"
+                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
+                    : "border border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
                 }`}
               >
                 Republican
@@ -212,8 +217,8 @@ export default function VoteometerApp() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-3 text-sm font-medium text-slate-700">{userParty} candidates</div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <div className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300">{userParty} candidates</div>
             <div>
               <button
                 onClick={() => {
@@ -222,7 +227,7 @@ export default function VoteometerApp() {
                     handleAddCandidate(userParty, candidateName);
                   }
                 }}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50"
+                className="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-700"
               >
                 Add candidate
               </button>
@@ -248,16 +253,16 @@ export default function VoteometerApp() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-medium text-slate-700">Answer the questions</h2>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <h2 className="text-lg font-medium text-slate-700 dark:text-slate-300">Answer the questions</h2>
             <ul className="mt-4 space-y-6">
               {questions.map((q) => (
                 <li key={q.id} className="flex flex-col">
-                  <span className="text-sm text-slate-700">{q.question}</span>
+                  <span className="text-sm text-slate-700 dark:text-slate-300">{q.question}</span>
                   {q.question.includes("rate") ? (
                     <div className="flex gap-2">
                       {[...Array(11).keys()].map((value) => (
-                        <label key={value}>
+                        <label key={value} className="text-slate-700 dark:text-slate-300">
                           <input
                             type="radio"
                             name={q.id}
@@ -275,7 +280,7 @@ export default function VoteometerApp() {
                       onChange={(e) =>
                         handleAnswerChange(q.id, parseFloat(e.target.value) || 0)
                       }
-                      className="w-20 rounded-md border border-slate-300 p-2 text-sm"
+                      className="w-20 rounded-md border border-slate-300 p-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
                     />
                   )}
                 </li>
@@ -283,36 +288,36 @@ export default function VoteometerApp() {
             </ul>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-lg font-medium text-slate-700">Recommended Candidate</h2>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <h2 className="text-lg font-medium text-slate-700 dark:text-slate-300">Recommended Candidate</h2>
             {recommendedCandidate ? (
               <div className="mt-4">
-                <p className="text-sm text-slate-700">
+                <p className="text-sm text-slate-700 dark:text-slate-300">
                   Based on your answers, we recommend:
                 </p>
-                <p className="mt-2 text-xl font-bold text-slate-900">
+                <p className="mt-2 text-xl font-bold text-slate-900 dark:text-slate-100">
                   {recommendedCandidate.name} ({recommendedCandidate.party})
                 </p>
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
                   Power Number: {recommendedCandidate.powerNumber.toFixed(2)}
                 </p>
               </div>
             ) : (
-              <p className="mt-4 text-sm text-slate-600">No recommendation available.</p>
+              <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">No recommendation available.</p>
             )}
           </div>
 
-          <div>
-            <h2>How the Math is Calculated</h2>
-            <p>The Power Number is calculated using the following formula:</p>
-            <ul>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <h2 className="text-lg font-medium text-slate-700 dark:text-slate-300">How the Math is Calculated</h2>
+            <p className="mt-2 text-slate-600 dark:text-slate-400">The Power Number is calculated using the following formula:</p>
+            <ul className="mt-2 list-disc pl-5 text-slate-600 dark:text-slate-400">
               <li>Column 1: [Candidate Strength] x [Opponent Primary Win Probability] x [General Election Win Probability]</li>
             </ul>
           </div>
 
-          <div>
-            <h2>Power Number Comparison</h2>
-            <div style={{ height: '400px', width: '100%' }}>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+            <h2 className="text-lg font-medium text-slate-700 dark:text-slate-300">Power Number Comparison</h2>
+            <div style={{ height: '400px', width: '100%' }} className="mt-4">
               <Bar data={powerNumberData} />
             </div>
           </div>
