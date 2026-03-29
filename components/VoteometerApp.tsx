@@ -2,10 +2,6 @@
 
 import { Chart as ChartJS, CategoryScale, BarElement, LinearScale, Title, Tooltip } from "chart.js";
 import { useEffect, useState, useMemo } from "react";
-import CandidateEditor from "@/components/CandidateEditor";
-import MatchupEditor from "@/components/MatchupEditor";
-import ResultsPanel from "@/components/ResultsPanel";
-import { calculateScores } from "@/lib/scoring";
 import { seedCandidates, seedMatchups } from "@/lib/seedData";
 import type { Candidate, Matchup, Party } from "@/lib/types";
 import { Bar } from "react-chartjs-2";
@@ -26,23 +22,26 @@ export default function VoteometerApp() {
     q2: 75,
   });
 
-  const democrats = candidates.filter((candidate) => candidate.party === "Democrat");
-  const republicans = candidates.filter((candidate) => candidate.party === "Republican");
-
   const partyQuestions: Record<Party, string[]> = {
     Democrat: [
       "On a scale of -10 to 10, how would you rate Biden as president?",
       "On a scale of -10 to 10, how would you rate Sanders as president?",
+      "On a scale of -10 to 10, how would you rate Trump as president?",
+      "On a scale of -10 to 10, how would you rate DeSantis as president?",
       "In Biden vs. Sanders, what is the probability that Biden wins?",
+      "In Trump vs. DeSantis, what is the probability that Trump wins?",
       "In Biden vs. Trump, what is the probability Biden wins?",
       "In Biden vs. DeSantis, what is the probability Biden wins?",
       "In Sanders vs. Trump, what is the probability Sanders wins?",
       "In Sanders vs. DeSantis, what is the probability Sanders wins?",
     ],
     Republican: [
+      "On a scale of -10 to 10, how would you rate Biden as president?",
+      "On a scale of -10 to 10, how would you rate Sanders as president?",
       "On a scale of -10 to 10, how would you rate Trump as president?",
       "On a scale of -10 to 10, how would you rate DeSantis as president?",
       "In Trump vs. DeSantis, what is the probability that Trump wins?",
+      "In Biden vs. Sanders, what is the probability that Biden wins?",
       "In Trump vs. Biden, what is the probability Trump wins?",
       "In Trump vs. Sanders, what is the probability Trump wins?",
       "In DeSantis vs. Biden, what is the probability DeSantis wins?",
@@ -108,25 +107,84 @@ export default function VoteometerApp() {
     }
   };
 
-  const calculatePowerNumbers = useMemo(() => {
-    return candidates.map((candidate) => {
-      const candidateAnswers = Object.entries(selectedAnswers).filter(([question]) =>
-        question.includes(candidate.name)
-      );
+  const getCandidateRating = (candidate: Candidate) => {
+    const ratingQuestion = Object.entries(selectedAnswers).find(([question]) =>
+      question.toLowerCase().includes("how would you rate") && question.includes(candidate.name)
+    );
+    if (ratingQuestion && typeof ratingQuestion[1] === "number") {
+      return ratingQuestion[1] as number;
+    }
+    return candidate.rating;
+  };
 
-      let powerNumber = 0;
-      candidateAnswers.forEach(([question, value]) => {
-        if (typeof value === "number") {
-          powerNumber += value;
-        }
-      });
+  const getWinProbability = (candidateA: Candidate, candidateB: Candidate) => {
+    const directQuestion = Object.entries(selectedAnswers).find(([question]) =>
+      question.includes(candidateA.name) &&
+      question.includes(candidateB.name) &&
+      question.toLowerCase().includes("probability")
+    );
+
+    if (!directQuestion || typeof directQuestion[1] !== "number") {
+      const seedMatchup = seedMatchups.find(
+        (m) =>
+          m.democratCandidateId === candidateA.id && m.republicanCandidateId === candidateB.id
+      );
+      if (seedMatchup) return seedMatchup.democratWinProb / 100;
+
+      const reverseSeedMatchup = seedMatchups.find(
+        (m) =>
+          m.democratCandidateId === candidateB.id && m.republicanCandidateId === candidateA.id
+      );
+      if (reverseSeedMatchup) return 1 - reverseSeedMatchup.democratWinProb / 100;
+
+      return 0.5;
+    }
+
+    const [question, value] = directQuestion;
+    const probability = (value as number) / 100;
+    return question.includes(`${candidateA.name} wins`) ? probability : 1 - probability;
+  };
+
+  const getOpponentPrimaryProbabilities = (opponents: Candidate[]) => {
+    if (opponents.length !== 2) {
+      const uniform = 1 / Math.max(opponents.length, 1);
+      return new Map(opponents.map((opponent) => [opponent.id, uniform]));
+    }
+
+    const [opp1, opp2] = opponents;
+    const pOpp1 = getWinProbability(opp1, opp2);
+    return new Map<string, number>([
+      [opp1.id, pOpp1],
+      [opp2.id, 1 - pOpp1],
+    ]);
+  };
+
+  const calculatePowerNumbers = useMemo(() => {
+    const opponentParty: Party = userParty === "Democrat" ? "Republican" : "Democrat";
+    const ownCandidates = candidates.filter((candidate) => candidate.party === userParty);
+    const opponentCandidates = candidates.filter((candidate) => candidate.party === opponentParty);
+    const opponentPrimaryProbabilities = getOpponentPrimaryProbabilities(opponentCandidates);
+
+    return ownCandidates.map((candidate) => {
+      const ownRating = getCandidateRating(candidate);
+
+      const powerNumber = opponentCandidates.reduce((sum, opponent) => {
+        const opponentRating = getCandidateRating(opponent);
+        const opponentPrimaryProb = opponentPrimaryProbabilities.get(opponent.id) ?? 0;
+        const ownGeneralWinProb = getWinProbability(candidate, opponent);
+
+        const expectedValueAgainstOpponent =
+          ownGeneralWinProb * ownRating + (1 - ownGeneralWinProb) * opponentRating;
+
+        return sum + opponentPrimaryProb * expectedValueAgainstOpponent;
+      }, 0);
 
       return {
         ...candidate,
         powerNumber,
       };
     });
-  }, [candidates, selectedAnswers]);
+  }, [candidates, selectedAnswers, userParty]);
 
   const recommendedCandidate = useMemo(() => {
     if (!calculatePowerNumbers.length) return null;
@@ -262,7 +320,7 @@ export default function VoteometerApp() {
                   <span className="text-sm text-gray-700">{q.question}</span>
                   {q.question.includes("rate") ? (
                     <div className="flex gap-2">
-                      {[...Array(11).keys()].map((value) => (
+                      {Array.from({ length: 21 }, (_, i) => i - 10).map((value) => (
                         <label key={value} className="text-gray-700">
                           <input
                             type="radio"
@@ -311,42 +369,57 @@ export default function VoteometerApp() {
           <div className="rounded-2xl border border-gray-300 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-medium text-gray-700">How the Math is Calculated</h2>
             <p className="mt-2 text-gray-600">
-              Each candidate gets a <strong>Power Number</strong> — a single score that combines how much
-              you like them with how likely they are to win. The higher the number, the better the pick.
+              For the two candidates in your party, we compute a Power Number by combining:
+              candidate quality, opponent primary odds, and general-election odds.
             </p>
 
-            <h3 className="mt-4 font-semibold text-gray-800">Step 1 — Rate the candidate</h3>
-            <p className="mt-1 text-gray-600">
-              You rate each candidate on a scale of <strong>0 to 10</strong> (how good you think they
-              would be). This is their <em>Candidate Strength</em>.
-            </p>
+            <h3 className="mt-4 font-semibold text-gray-800">Variable Key</h3>
+            <ul className="mt-2 list-disc pl-5 text-sm text-gray-700 space-y-1">
+              <li>D1, D2: Democratic candidates (for example, Biden and Sanders)</li>
+              <li>R1, R2: Republican candidates (for example, Trump and DeSantis)</li>
+              <li>D1P, D2P, R1P, R2P: your rating for each candidate (scale -10 to 10)</li>
+              <li>R1W, R2W: probability each Republican wins the Republican primary</li>
+              <li>D1R1: probability D1 beats R1 in the general election</li>
+              <li>R1D1 = 1 - D1R1 (same matchup from R1 perspective)</li>
+            </ul>
 
-            <h3 className="mt-4 font-semibold text-gray-800">Step 2 — Estimate head-to-head win probabilities</h3>
-            <p className="mt-1 text-gray-600">
-              For every matchup (e.g. Biden vs. Trump), you enter a probability (0–100) representing how
-              likely the candidate is to win that race.
-            </p>
-
-            <h3 className="mt-4 font-semibold text-gray-800">Step 3 — Sum all scores</h3>
-            <p className="mt-1 text-gray-600">
-              The Power Number is the <strong>sum</strong> of every answer that involves that candidate —
-              their rating plus all of their matchup probabilities. A candidate who is both highly rated
-              and likely to win in multiple matchups will accumulate the highest total.
+            <h3 className="mt-4 font-semibold text-gray-800">Four-Column Form (Democratic primary)</h3>
+            <pre className="mt-2 overflow-x-auto rounded-lg bg-gray-50 p-3 text-sm text-gray-700">
+{`D1 = [D1P x R1W x D1R1] + [D1P x R2W x D1R2] + [R1P x R1W x R1D1] + [R2P x R2W x R2D1]
+D2 = [D2P x R1W x D2R1] + [D2P x R2W x D2R2] + [R1P x R1W x R1D2] + [R2P x R2W x R2D2]`}
+            </pre>
+            <p className="mt-2 text-sm text-gray-600">
+              Read each term as: chance that this opponent reaches the general election,
+              times the expected value of that matchup.
             </p>
 
             <div className="mt-4 rounded-xl bg-gray-50 p-4 text-sm text-gray-700">
-              <p className="font-semibold">Example:</p>
+              <p className="font-semibold">Worked Example (Democrat)</p>
               <ul className="mt-2 list-disc pl-5 space-y-1">
-                <li>You rate Biden an <strong>8</strong></li>
-                <li>Biden vs. Trump win probability: <strong>60</strong></li>
-                <li>Biden vs. DeSantis win probability: <strong>55</strong></li>
-                <li>Biden vs. Sanders win probability: <strong>70</strong></li>
+                <li>D1P = 5, D2P = 9, R1P = -10, R2P = -8</li>
+                <li>R1W = 0.9, R2W = 0.1</li>
+                <li>D1R1 = 0.7, D1R2 = 0.5, D2R1 = 0.4, D2R2 = 0.2</li>
+                <li>R1D1 = 0.3, R2D1 = 0.5, R1D2 = 0.6, R2D2 = 0.8</li>
               </ul>
-              <p className="mt-3">
-                Biden's Power Number = 8 + 60 + 55 + 70 = <strong>193</strong>
+
+              <p className="mt-3 font-medium">D1 (Biden)</p>
+              <p>
+                [5 x 0.9 x 0.7] + [5 x 0.1 x 0.5] + [-10 x 0.9 x 0.3] + [-8 x 0.1 x 0.4]
               </p>
-              <p className="mt-2 text-gray-500">
-                The candidate with the highest Power Number among your party is shown as the recommendation.
+              <p>
+                = 3.15 + 0.25 - 2.70 - 0.32 = <strong>0.38</strong>
+              </p>
+
+              <p className="mt-3 font-medium">D2 (Sanders)</p>
+              <p>
+                [9 x 0.9 x 0.4] + [9 x 0.1 x 0.2] + [-10 x 0.9 x 0.6] + [-8 x 0.1 x 0.8]
+              </p>
+              <p>
+                = 3.24 + 0.18 - 5.40 - 0.64 = <strong>-2.62</strong>
+              </p>
+
+              <p className="mt-3 text-gray-600">
+                Since 0.38 is greater than -2.62, D1 is recommended.
               </p>
             </div>
           </div>
