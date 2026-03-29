@@ -17,8 +17,14 @@ export default function VoteometerApp() {
   const [userParty, setUserParty] = useState<Party>("Democrat");
   const [candidates, setCandidates] = useState<Candidate[]>(seedCandidates);
   const [matchups, setMatchups] = useState<Matchup[]>(seedMatchups);
-  const [questions, setQuestions] = useState<{ question: string; id: string }[]>([]);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | number>>({});
+  const [questions, setQuestions] = useState<{ question: string; id: string }[]>([
+    { question: "Static question 1", id: "q1" },
+    { question: "Static question 2", id: "q2" },
+  ]);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | number>>({
+    q1: 50,
+    q2: 75,
+  });
   const [darkMode, setDarkMode] = useState(false);
 
   const democrats = candidates.filter((candidate) => candidate.party === "Democrat");
@@ -71,7 +77,7 @@ export default function VoteometerApp() {
 
   const handleAddCandidate = (party: Party, candidateName: string) => {
     const newCandidate: Candidate = {
-      id: crypto.randomUUID(),
+      id: `test-id-${Date.now()}`, // Replace crypto.randomUUID() with a static ID for testing
       name: candidateName,
       party,
       rating: 0,
@@ -292,9 +298,6 @@ export default function VoteometerApp() {
             <p>The Power Number is calculated using the following formula:</p>
             <ul>
               <li>Column 1: [Candidate Strength] x [Opponent Primary Win Probability] x [General Election Win Probability]</li>
-              <li>Column 2: [Candidate Strength] x [Opponent Primary Win Probability] x [General Election Win Probability]</li>
-              <li>Column 3: [Opponent Strength] x [Opponent Primary Win Probability] x [General Election Win Probability]</li>
-              <li>Column 4: [Opponent Strength] x [Opponent Primary Win Probability] x [Opponent General Election Win Probability]</li>
             </ul>
           </div>
 
