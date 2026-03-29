@@ -596,23 +596,26 @@ export default function VoteometerApp() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-zinc-50 via-white to-zinc-100 text-black">
+    <div className="relative min-h-screen overflow-x-clip text-black">
+      <div className="pointer-events-none absolute -left-16 top-12 h-56 w-56 rounded-full bg-emerald-200/35 blur-3xl" />
+      <div className="pointer-events-none absolute -right-20 top-28 h-72 w-72 rounded-full bg-amber-200/35 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-8 left-1/2 h-52 w-52 -translate-x-1/2 rounded-full bg-teal-200/30 blur-3xl" />
       <main className="min-h-screen">
         <div className="mx-auto max-w-6xl px-6 py-8">
           <header className="mb-8 flex items-start justify-between gap-4">
             <div>
-              <p className="inline-flex rounded-full border border-zinc-300 bg-white px-3 py-1 text-xs font-medium tracking-wide text-zinc-600">
+              <p className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold tracking-[0.14em] text-emerald-800">
                 DECISION TOOL
               </p>
-              <h1 className="mt-3 text-4xl font-bold tracking-tight">Voteometer</h1>
-              <p className="mt-2 max-w-2xl text-base text-zinc-600">
+              <h1 className="mt-3 text-4xl font-bold tracking-tight text-zinc-900 md:text-5xl">Voteometer</h1>
+              <p className="mt-2 max-w-2xl text-base text-zinc-600 md:text-lg">
                 Compare how much you like each candidate with how likely they are to win.
               </p>
             </div>
           </header>
 
           {stage === "setup" && (
-            <section className="mx-auto max-w-3xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+            <section className="vm-card mx-auto max-w-3xl rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5">
               <h2 className="text-lg font-semibold text-zinc-900">Step 1: Setup</h2>
               <p className="mt-1 text-sm text-zinc-600">Choose your party and confirm candidates before starting the flashcards.</p>
               <p className="mt-2 text-sm text-zinc-500">Voteometer always asks about every candidate's rating, the other party's primary odds, and cross-party general-election matchups. If either party has three or more candidates, it also asks same-party primary matchups for that party and converts them into nomination probabilities.</p>
@@ -715,7 +718,7 @@ export default function VoteometerApp() {
           )}
 
           {stage === "questions" && currentQuestion && (
-            <section className="mx-auto max-w-3xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+            <section className="vm-card mx-auto max-w-3xl rounded-2xl p-6">
               <div className="mb-5 flex items-center justify-between gap-3">
                 <p className="text-sm font-semibold uppercase tracking-wide text-zinc-600">
                   Step 2: Question {currentQuestionIndex + 1} of {totalQuestions}
@@ -846,7 +849,7 @@ export default function VoteometerApp() {
           {stage === "results" && (
             <div className="grid gap-6 lg:grid-cols-3">
               <div className="space-y-6 lg:col-span-2">
-                <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+                <section className="vm-card rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5">
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold text-zinc-900">How The Math Works</h2>
                     <button
@@ -894,17 +897,17 @@ export default function VoteometerApp() {
               </div>
 
               <aside className="space-y-6">
-                <section className="rounded-2xl border border-zinc-900 bg-zinc-900 p-6 text-white shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+                <section className="rounded-2xl border border-emerald-800/20 bg-gradient-to-br from-zinc-900 via-zinc-900 to-emerald-900 p-6 text-white shadow-[0_20px_50px_rgba(17,24,39,0.35)] transition-all duration-300 hover:-translate-y-0.5">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Recommended Candidate</p>
                   {recommendedCandidate ? (
                     <>
-                      <h2 className="mt-2 text-3xl font-bold">{recommendedCandidate.name}</h2>
+                      <h2 className="mt-3 text-4xl font-bold leading-tight md:text-5xl">{recommendedCandidate.name}</h2>
                       <p className="mt-1 text-sm text-zinc-300">{recommendedCandidate.party}</p>
-                      <div className="mt-5 rounded-xl bg-white/10 p-3">
+                      <div className="mt-5 rounded-xl border border-white/10 bg-white/10 p-3">
                         <p className="text-xs uppercase tracking-wide text-zinc-300">Power Number</p>
                         <p className="mt-1 text-2xl font-semibold">{recommendedCandidate.powerNumber.toFixed(2)}</p>
                       </div>
-                      <div className="mt-3 rounded-xl bg-white/10 p-3">
+                      <div className="mt-3 rounded-xl border border-white/10 bg-white/10 p-3">
                         <p className="text-xs uppercase tracking-wide text-zinc-300">Nomination Probability</p>
                         <p className="mt-1 text-sm font-medium text-zinc-100">{nominationProbabilityLabel(recommendedCandidate.nominationProbability)}</p>
                       </div>
@@ -914,7 +917,7 @@ export default function VoteometerApp() {
                   )}
                 </section>
 
-                <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+                <section className="vm-card rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5">
                   <h2 className="text-lg font-semibold text-zinc-900">Opposing Field Assumptions</h2>
                   <p className="mt-1 text-sm text-zinc-600">These are the nomination probabilities currently assigned to the opposing party candidates.</p>
                   <div className="mt-4 space-y-2">
@@ -936,7 +939,7 @@ export default function VoteometerApp() {
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+                <section className="vm-card rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5">
                   <h2 className="text-lg font-semibold text-zinc-900">Debug Primary Inputs</h2>
                   <p className="mt-1 text-sm text-zinc-600">This shows the raw same-party primary values the nomination model is currently using.</p>
                   <div className="mt-4 space-y-3">
@@ -974,7 +977,7 @@ export default function VoteometerApp() {
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+                <section className="vm-card rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5">
                   <div className="mb-4 flex items-start justify-between gap-2">
                     <div>
                       <h2 className="text-lg font-semibold text-zinc-900">Power Number Comparison</h2>
@@ -1003,7 +1006,7 @@ export default function VoteometerApp() {
                   </div>
                 </section>
 
-                <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+                <section className="vm-card rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5">
                   <h2 className="text-lg font-semibold text-zinc-900">Why Each Score Looks Like This</h2>
                   <p className="mt-1 text-sm text-zinc-600">Expand a candidate to see the compact contribution table for their score.</p>
                   <div className="mt-4 space-y-4">

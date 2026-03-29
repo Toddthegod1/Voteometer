@@ -1,11 +1,30 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+:root {
+  --bg-base: #f5f6f8;
+  --bg-tint: #e8f2ef;
+  --bg-warm: #f8efe4;
+  --surface: #ffffff;
+  --surface-soft: #f9fafb;
+  --text-main: #111827;
+  --text-muted: #6b7280;
+  --brand: #0f766e;
+  --brand-strong: #115e59;
+  --ring: rgba(15, 118, 110, 0.25);
+  --border-soft: #e5e7eb;
+}
+
 html,
 body {
   margin: 0;
   padding: 0;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), "Segoe UI", sans-serif;
+  color: var(--text-main);
+  background:
+    radial-gradient(1000px 600px at 10% -10%, var(--bg-tint), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, var(--bg-warm), transparent 50%),
+    var(--bg-base);
 }
 
 * {
@@ -15,4 +34,30 @@ body {
 button,
 input {
   font: inherit;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display), var(--font-sans), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+::selection {
+  background: rgba(15, 118, 110, 0.2);
+}
+
+.vm-card {
+  border: 1px solid var(--border-soft);
+  background: linear-gradient(180deg, #ffffff 0%, var(--surface-soft) 100%);
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.06);
+}
+
+.vm-card:hover {
+  box-shadow: 0 18px 40px rgba(17, 24, 39, 0.08);
+}
+
+.vm-focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
 }

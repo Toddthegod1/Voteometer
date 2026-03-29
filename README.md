@@ -1,132 +1,114 @@
 # Voteometer
 
-Voteometer is a Next.js web app for comparing primary candidates based on two things at once:
+Voteometer is a decision-support tool that helps voters choose the best candidate by combining **personal preference** with **electability** into a single score.
 
-- how good you think each candidate would be as president
-- how likely each candidate is to reach and win the general election
+Instead of asking *“Who do I like?”* or *“Who can win?”*, Voteometer answers both at once.
 
-The app turns those inputs into a "Power Number" so a voter can compare candidates in a more structured way instead of looking at preference and electability separately.
+---
 
-## Who Worked On It
-It was a solo project by Todd Klinger! However the original idea was from my former Table Tennis Coach Larry Hodges who was the brain behind the probability equations!
+## 🚨 Why This Matters
 
-## What The App Does
+Voters often face a tradeoff between choosing the candidate they personally prefer and the one most likely to win.
 
-Voteometer lets a user:
+Voteometer quantifies that tradeoff, helping users make more informed and strategic decisions instead of relying on intuition alone.
 
-- choose a party perspective: Democrat or Republican
-- start with suggested 2028 candidates and add custom names
-- rate candidates on a `-10` to `10` scale
-- enter primary and general-election win probabilities through flashcard-style questions
-- pull expert estimates for cross-party general-election matchups from Polymarket's 2028 presidential market when available
-- compare candidates by final Power Number, nomination probability, and per-opponent score breakdown
+---
 
-## Core Idea
+## ⚙️ What The App Does
+
+Voteometer allows users to:
+
+* Choose a party perspective (Democrat or Republican)
+* Start with suggested 2028 candidates or add custom candidates
+* Rate candidates on a **-10 to 10 scale**
+* Answer dynamically generated matchup questions
+* Automatically fill general-election probabilities using real-world market data
+* Compare candidates using a unified **Power Number**
+
+---
+
+## 🧠 Core Idea
 
 Each candidate is scored by combining:
 
-- the user's rating for that candidate
-- the modeled chance that candidate wins their party nomination
-- the modeled chance they beat each opposing candidate in a general election
-- the nomination chances of the opposing-party candidates
+* Candidate strength (user rating)
+* Probability of winning the party nomination
+* Probability of winning the general election
+* Strength of opposing candidates
 
-In two-candidate primary setups, the app uses the simpler two-candidate logic.
+Voteometer computes a **Power Number** for each candidate by aggregating contributions across all matchups.
 
-In three-or-more-candidate primary setups, the app asks same-party pairwise primary questions and converts those answers into nomination probabilities using a normalized pairwise log-odds model.
+The results include:
 
-The results page shows:
+* Recommended candidate
+* Power Numbers
+* Nomination probabilities
+* Per-opponent contribution breakdown
 
-- the recommended candidate
-- each candidate's Power Number
-- modeled nomination probabilities
-- opposing field assumptions
-- a detailed contribution breakdown showing how each opponent affects the score
+---
 
-## Polymarket Integration
+## 📊 External Data Integration
 
-The app includes a server route at `app/api/matchups/route.ts` that:
+Voteometer integrates with **Polymarket** to provide real-world probability estimates for cross-party general-election matchups.
 
-- fetches the Polymarket 2028 presidential event
-- caches candidate probabilities for 5 minutes
-- matches requested Democrat and Republican names to market names
-- returns cross-party matchup estimates
-- falls back to neutral `50/50` estimates when market data is unavailable
+* Data is fetched via a backend API route
+* Cached for performance (5 minutes)
+* Falls back to neutral estimates when data is unavailable
 
-Important limitation:
+---
 
-- expert estimates currently apply to cross-party general-election matchups only
-- same-party primary probabilities are driven by the user's answers unless future polling or other priors are added
+## 🧩 Key Features
 
-## Tech Stack
+* Dynamic candidate management
+* Multi-candidate primary modeling
+* Automatic question generation
+* Optional expert-style probability estimates
+* Interactive visualizations (Chart.js)
 
-- Next.js 16
-- React 19
-- TypeScript
-- Tailwind CSS
-- Chart.js / react-chartjs-2
+---
 
-## Project Structure
+## 🛠 Tech Stack
 
-- `app/`: App Router pages and API routes
-- `components/`: main Voteometer UI and results views
-- `lib/`: seed candidates, types, scoring helpers, and app data
-- `prisma/`: Prisma schema files currently kept in the repo
+* Next.js 16
+* React 19
+* TypeScript
+* Tailwind CSS
+* Chart.js
 
-## Running The Project
+---
 
-Install dependencies:
+## ▶️ How to Run
 
 ```bash
 npm install
-```
-
-Start development mode:
-
-```bash
 npm run dev
 ```
 
-Run a production build:
+Then open: http://localhost:3000
 
-```bash
-npm run build
-```
+---
 
-The main app runs from the repository root.
+## 👤 Who Worked On It
 
-## Notes About This Repo
+Todd Klinger
 
-There is also a nested `voteometer/` directory in the repository that contains a separate Next.js app scaffold. The final project described in this README is the root app, not the nested one.
+Original concept inspired by Larry Hodges.
 
-The root TypeScript configuration excludes that nested folder so the main project can build independently.
+---
 
-## Current Status
+## 🤖 AI Usage
 
-This final project includes:
+AI (ChatGPT and GitHub Copilot) was used to:
 
-- dynamic candidate management
-- 2028-oriented starter candidates
-- dynamic flashcard question generation
-- multi-candidate primary modeling
-- Polymarket-powered general-election estimates
-- results explanations and debug views for primary inputs
+* assist with debugging and development
+* suggest UI improvements and product features
+* help implement complex logic such as multi-candidate modeling
 
-## Future Improvements
+All final design decisions and implementation were completed by the developer.
 
-Natural next steps for the project would be:
+---
 
-- add polling-based priors for same-party primary questions
-- add clearer warnings when nomination probabilities are still fallback-driven
-- persist sessions or share saved setups
-- add more polished explanations for the math in the UI
+## 🎥 Demo
 
-## AI Usage
+[Once I make video link I will put here]
 
-AI (ChatGPT and Github Copilot) was used to:
-- assist with debugging (Tailwind dark mode, React issues)
-- help design features such as expert estimate autofill
-- Implementing multi-candidate math logic
-- UI design in general
-- Gave the idea for using Vercel!
-
-All implementation decisions and final code integration were done by me!
