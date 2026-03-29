@@ -3,7 +3,7 @@
 import { Chart as ChartJS, CategoryScale, BarElement, LinearScale, Title, Tooltip } from "chart.js";
 import { useEffect, useState, useMemo } from "react";
 import { seedCandidates, seedMatchups } from "@/lib/seedData";
-import type { Candidate, Party } from "@/lib/types";
+import type { Candidate, Matchup, Party } from "@/lib/types";
 import { Bar } from "react-chartjs-2";
 
 // Register the required components
@@ -23,6 +23,8 @@ export default function VoteometerApp() {
     q2: 75,
   });
   const [removedCandidateNames, setRemovedCandidateNames] = useState<string[]>([]);
+  const [isApplyingExpertEstimates, setIsApplyingExpertEstimates] = useState(false);
+  const [expertEstimateMessage, setExpertEstimateMessage] = useState<string | null>(null);
 
   const partyQuestions: Record<Party, string[]> = {
     Democrat: [
@@ -125,6 +127,92 @@ export default function VoteometerApp() {
         .filter((key) => !key.includes(candidateToRemove.name))
         .reduce((acc, key) => ({ ...acc, [key]: prevAnswers[key] }), {})
     );
+  };
+
+  const getQuestionCandidates = (question: string) => {
+    const matches = candidates
+      .map((candidate) => ({
+        candidate,
+        position: question.indexOf(candidate.name),
+      }))
+      .filter((entry) => entry.position >= 0)
+      .sort((a, b) => a.position - b.position)
+      .map((entry) => entry.candidate);
+
+    const uniqueById = new Map(matches.map((candidate) => [candidate.id, candidate]));
+    return Array.from(uniqueById.values()).slice(0, 2);
+  };
+
+  const getExpertProbabilityForQuestion = (question: string, matchups: Matchup[]) => {
+    if (question.toLowerCase().includes("rate")) return null;
+
+    const [candidateA, candidateB] = getQuestionCandidates(question);
+    if (!candidateA || !candidateB) return null;
+    if (candidateA.party === candidateB.party) return null;
+
+    const matchup = matchups.find(
+      (m) =>
+        (m.democratCandidateId === candidateA.id && m.republicanCandidateId === candidateB.id) ||
+        (m.democratCandidateId === candidateB.id && m.republicanCandidateId === candidateA.id)
+    );
+    if (!matchup) return null;
+
+    const winner = [candidateA, candidateB].find((candidate) =>
+      question.includes(`${candidate.name} wins`)
+    );
+    if (!winner) return null;
+
+    const democratCandidateId =
+      candidateA.party === "Democrat" ? candidateA.id : candidateB.id;
+    const democratWinProb =
+      matchup.democratCandidateId === democratCandidateId
+        ? matchup.democratWinProb
+        : 100 - matchup.democratWinProb;
+
+    return winner.party === "Democrat" ? democratWinProb : 100 - democratWinProb;
+  };
+
+  const applyExpertEstimates = async (questionId?: string) => {
+    setIsApplyingExpertEstimates(true);
+    setExpertEstimateMessage(null);
+
+    try {
+      const response = await fetch("/api/matchups");
+      if (!response.ok) {
+        throw new Error("Unable to fetch expert matchup data.");
+      }
+
+      const matchups = (await response.json()) as Matchup[];
+      const questionsToFill = questions.filter(
+        (q) => !q.question.toLowerCase().includes("rate") && (!questionId || q.id === questionId)
+      );
+
+      let filledCount = 0;
+      const updates: Record<string, number> = {};
+      for (const q of questionsToFill) {
+        const expertProb = getExpertProbabilityForQuestion(q.question, matchups);
+        if (typeof expertProb === "number") {
+          updates[q.id] = expertProb;
+          filledCount += 1;
+        }
+      }
+
+      if (filledCount === 0) {
+        setExpertEstimateMessage("No expert estimate available for this question set.");
+        return;
+      }
+
+      setSelectedAnswers((prev) => ({ ...prev, ...updates }));
+      setExpertEstimateMessage(
+        questionId
+          ? "Expert estimate applied to this question."
+          : `Expert estimates applied to ${filledCount} electability questions.`
+      );
+    } catch {
+      setExpertEstimateMessage("Could not load expert estimates right now. Try again.");
+    } finally {
+      setIsApplyingExpertEstimates(false);
+    }
   };
 
   const getCandidateRating = (candidate: Candidate) => {
@@ -390,13 +478,28 @@ export default function VoteometerApp() {
                 <p className="text-sm font-semibold uppercase tracking-wide text-zinc-600">
                   Step 2: Question {currentQuestionIndex + 1} of {totalQuestions}
                 </p>
-                <button
-                  onClick={() => setStage("setup")}
-                  className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
-                >
-                  Back to setup
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => applyExpertEstimates()}
+                    disabled={isApplyingExpertEstimates}
+                    className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isApplyingExpertEstimates ? "Applying..." : "Use expert estimates"}
+                  </button>
+                  <button
+                    onClick={() => setStage("setup")}
+                    className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                  >
+                    Back to setup
+                  </button>
+                </div>
               </div>
+
+              {expertEstimateMessage && (
+                <div className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-700">
+                  {expertEstimateMessage}
+                </div>
+              )}
 
               <div className="mb-6 h-2 overflow-hidden rounded-full bg-zinc-200">
                 <div
@@ -456,6 +559,13 @@ export default function VoteometerApp() {
                       }}
                       className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition-shadow duration-200 focus:outline-none focus:ring-2 focus:ring-zinc-300"
                     />
+                    <button
+                      onClick={() => applyExpertEstimates(currentQuestion.id)}
+                      disabled={isApplyingExpertEstimates}
+                      className="mt-3 rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isApplyingExpertEstimates ? "Applying..." : "Use expert estimate for this question"}
+                    </button>
                   </div>
                 )}
               </div>
