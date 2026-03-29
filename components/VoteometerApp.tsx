@@ -310,10 +310,45 @@ export default function VoteometerApp() {
 
           <div className="rounded-2xl border border-gray-300 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-medium text-gray-700">How the Math is Calculated</h2>
-            <p className="mt-2 text-gray-600">The Power Number is calculated using the following formula:</p>
-            <ul className="mt-2 list-disc pl-5 text-gray-600">
-              <li>Column 1: [Candidate Strength] x [Opponent Primary Win Probability] x [General Election Win Probability]</li>
-            </ul>
+            <p className="mt-2 text-gray-600">
+              Each candidate gets a <strong>Power Number</strong> — a single score that combines how much
+              you like them with how likely they are to win. The higher the number, the better the pick.
+            </p>
+
+            <h3 className="mt-4 font-semibold text-gray-800">Step 1 — Rate the candidate</h3>
+            <p className="mt-1 text-gray-600">
+              You rate each candidate on a scale of <strong>0 to 10</strong> (how good you think they
+              would be). This is their <em>Candidate Strength</em>.
+            </p>
+
+            <h3 className="mt-4 font-semibold text-gray-800">Step 2 — Estimate head-to-head win probabilities</h3>
+            <p className="mt-1 text-gray-600">
+              For every matchup (e.g. Biden vs. Trump), you enter a probability (0–100) representing how
+              likely the candidate is to win that race.
+            </p>
+
+            <h3 className="mt-4 font-semibold text-gray-800">Step 3 — Sum all scores</h3>
+            <p className="mt-1 text-gray-600">
+              The Power Number is the <strong>sum</strong> of every answer that involves that candidate —
+              their rating plus all of their matchup probabilities. A candidate who is both highly rated
+              and likely to win in multiple matchups will accumulate the highest total.
+            </p>
+
+            <div className="mt-4 rounded-xl bg-gray-50 p-4 text-sm text-gray-700">
+              <p className="font-semibold">Example:</p>
+              <ul className="mt-2 list-disc pl-5 space-y-1">
+                <li>You rate Biden an <strong>8</strong></li>
+                <li>Biden vs. Trump win probability: <strong>60</strong></li>
+                <li>Biden vs. DeSantis win probability: <strong>55</strong></li>
+                <li>Biden vs. Sanders win probability: <strong>70</strong></li>
+              </ul>
+              <p className="mt-3">
+                Biden's Power Number = 8 + 60 + 55 + 70 = <strong>193</strong>
+              </p>
+              <p className="mt-2 text-gray-500">
+                The candidate with the highest Power Number among your party is shown as the recommendation.
+              </p>
+            </div>
           </div>
 
           <div className="rounded-2xl border border-gray-300 bg-white p-5 shadow-sm">
