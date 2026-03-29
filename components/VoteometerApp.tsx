@@ -163,6 +163,10 @@ export default function VoteometerApp() {
     ],
   };
 
+  useEffect(() => {
+    console.log("Power Number Data:", powerNumberData);
+  }, [powerNumberData]);
+
   return (
     <div className={darkMode ? "dark" : ""}>
       <button onClick={toggleDarkMode} className="dark-mode-toggle">
