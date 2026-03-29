@@ -66,6 +66,7 @@ ChartJS.register(CategoryScale, BarElement, LinearScale, Title, Tooltip);
 
 export default function VoteometerApp() {
   const [stage, setStage] = useState<"setup" | "questions" | "results">("setup");
+  const [demoMode, setDemoMode] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userParty, setUserParty] = useState<Party>("Democrat");
   const [candidates, setCandidates] = useState<Candidate[]>(seedCandidates);
@@ -612,11 +613,38 @@ export default function VoteometerApp() {
                 Compare how much you like each candidate with how likely they are to win.
               </p>
             </div>
+            <div className="flex flex-col items-end gap-2">
+              <p className="rounded-full border border-zinc-200 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-600">
+                {stage} stage
+              </p>
+              <button
+                onClick={() => setDemoMode((prev) => !prev)}
+                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  demoMode
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                    : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+                }`}
+              >
+                Demo Mode: {demoMode ? "On" : "Off"}
+              </button>
+            </div>
           </header>
 
           {stage === "setup" && (
             <section className="vm-card mx-auto max-w-3xl rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5">
-              <h2 className="text-lg font-semibold text-zinc-900">Step 1: Setup</h2>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <h2 className="text-lg font-semibold text-zinc-900">Step 1: Setup</h2>
+                <button
+                  onClick={() => setDemoMode((prev) => !prev)}
+                  className={`rounded-xl border px-4 py-2 text-sm font-semibold transition-colors ${
+                    demoMode
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                      : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50"
+                  }`}
+                >
+                  {demoMode ? "Demo Mode: On (Debug Hidden)" : "Demo Mode: Off (Debug Visible)"}
+                </button>
+              </div>
               <p className="mt-1 text-sm text-zinc-600">Choose your party and confirm candidates before starting the flashcards.</p>
               <p className="mt-2 text-sm text-zinc-500">Voteometer always asks about every candidate's rating, the other party's primary odds, and cross-party general-election matchups. If either party has three or more candidates, it also asks same-party primary matchups for that party and converts them into nomination probabilities.</p>
 
@@ -847,215 +875,228 @@ export default function VoteometerApp() {
           )}
 
           {stage === "results" && (
-            <div className="grid gap-6 lg:grid-cols-3">
-              <div className="space-y-6 lg:col-span-2">
-                <section className="vm-card rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-zinc-900">How The Math Works</h2>
-                    <button
-                      onClick={() => setStage("questions")}
-                      className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
-                    >
-                      Review answers
-                    </button>
-                  </div>
-                  <p className="mt-2 text-sm text-zinc-600">
-                    {isMultiCandidateMode
-                      ? "We combine your ratings, primary matchup answers, and general-election odds into nomination probabilities and expected general-election value."
-                      : "We combine your candidate ratings with primary odds and general-election odds to compute expected value in the two-candidate model."}
-                  </p>
-
-                  <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 font-mono text-xs text-zinc-700">
-{dynamicFormulaText}
+            <div className="space-y-6">
+              <section className="vm-reveal rounded-3xl border border-emerald-800/20 bg-gradient-to-br from-zinc-900 via-zinc-900 to-emerald-900 p-7 text-white shadow-[0_24px_60px_rgba(17,24,39,0.35)]" style={{ animationDelay: "40ms" }}>
+                <div className="flex flex-wrap items-start justify-between gap-6">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-200">Final Recommendation</p>
+                    {recommendedCandidate ? (
+                      <>
+                        <h2 className="mt-3 text-5xl font-bold leading-tight md:text-6xl">{recommendedCandidate.name}</h2>
+                        <p className="mt-2 text-base text-zinc-300">{recommendedCandidate.party}</p>
+                        <p className="mt-4 max-w-xl text-sm text-zinc-300">
+                          Voteometer projects this as your strongest expected-value choice based on your ratings, nomination odds, and general-election outcomes.
+                        </p>
+                      </>
+                    ) : (
+                      <p className="mt-3 text-sm text-zinc-300">No recommendation available yet.</p>
+                    )}
                   </div>
 
-                  {isMultiCandidateMode ? (
-                    <div className="mt-4 rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-700">
-                      <p>
-                        When a party has three or more candidates, Voteometer turns the same-party pairwise primary answers into a nomination probability for each candidate using normalized pairwise log-odds.
-                      </p>
-                      <p className="mt-2">
-                        That nomination probability is then multiplied by the candidate's expected general-election value against the opposing field.
-                      </p>
-                      <p className="mt-2 text-zinc-500">
-                        Your party nomination probabilities are {ownPrimaryIsModeled ? "fully modeled from your same-party primary answers." : "not separately modeled because your party currently has only two candidates."} The opposing party nomination probabilities are {opponentPrimaryIsModeled ? "modeled from the opposing party's primary answers." : "taken directly from the single opposing primary head-to-head question."}
-                      </p>
+                  {recommendedCandidate && (
+                    <div className="grid min-w-[220px] gap-3 sm:grid-cols-1">
+                      <div className="rounded-xl border border-white/10 bg-white/10 p-3">
+                        <p className="text-xs uppercase tracking-wide text-zinc-300">Power Number</p>
+                        <p className="mt-1 text-3xl font-semibold">{recommendedCandidate.powerNumber.toFixed(2)}</p>
+                      </div>
+                      <div className="rounded-xl border border-white/10 bg-white/10 p-3">
+                        <p className="text-xs uppercase tracking-wide text-zinc-300">Nomination Probability</p>
+                        <p className="mt-1 text-lg font-medium text-zinc-100">{nominationProbabilityLabel(recommendedCandidate.nominationProbability)}</p>
+                      </div>
                     </div>
-                  ) : (
-                    <details className="mt-4 rounded-xl border border-zinc-200 bg-white p-4">
-                      <summary className="cursor-pointer text-sm font-semibold text-zinc-800">Worked example (expand)</summary>
-                      <div className="mt-3 space-y-2 text-sm text-zinc-700">
-                        <p>D1P = 5, D2P = 9, R1P = -10, R2P = -8</p>
-                        <p>R1W = 0.9, R2W = 0.1</p>
-                        <p>D1R1 = 0.7, D1R2 = 0.5, D2R1 = 0.4, D2R2 = 0.2</p>
-                        <p className="pt-1 font-medium">D1 = 3.15 + 0.25 - 2.70 - 0.32 = 0.38</p>
-                        <p className="font-medium">D2 = 3.24 + 0.18 - 5.40 - 0.64 = -2.62</p>
+                  )}
+                </div>
+              </section>
+
+              <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
+                <div className="space-y-6">
+                  <section className="vm-card vm-reveal rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5" style={{ animationDelay: "120ms" }}>
+                    <div className="mb-4 flex items-start justify-between gap-2">
+                      <div>
+                        <h2 className="text-lg font-semibold text-zinc-900">Power Number Comparison</h2>
+                        <p className="text-sm text-zinc-600">Start here: compare scores across your party candidates.</p>
+                      </div>
+                      <button
+                        onClick={() => setStage("setup")}
+                        className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                      >
+                        New setup
+                      </button>
+                    </div>
+                    <div className="h-[360px]">
+                      <Bar data={powerNumberData} options={chartOptions} />
+                    </div>
+                    <div className="mt-5 space-y-2">
+                      {calculatePowerNumbers.map((candidate) => (
+                        <div key={candidate.id} className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+                          <div>
+                            <p className="font-medium text-zinc-900">{candidate.name}</p>
+                            <p className="text-xs text-zinc-500">Nomination probability: {nominationProbabilityLabel(candidate.nominationProbability)}</p>
+                          </div>
+                          <p className="font-semibold text-zinc-900">{candidate.powerNumber.toFixed(2)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  <section className="vm-card vm-reveal rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5" style={{ animationDelay: "180ms" }}>
+                    <h2 className="text-lg font-semibold text-zinc-900">Why Each Score Looks Like This</h2>
+                    <p className="mt-1 text-sm text-zinc-600">Expand a candidate to inspect the contribution table.</p>
+                    <div className="mt-4 space-y-4">
+                      {calculatePowerNumbers.map((candidate) => (
+                        <details key={candidate.id} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                          <summary className="cursor-pointer list-none">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <h3 className="text-base font-semibold text-zinc-900">{candidate.name}</h3>
+                                <p className="mt-1 text-sm text-zinc-600">
+                                  Rating {getCandidateRating(candidate)}. Presidency value if nominated: {candidate.presidencyValueIfNominated.toFixed(2)}. Final power number: {candidate.powerNumber.toFixed(2)}.
+                                </p>
+                              </div>
+                              <div className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-right text-sm text-zinc-700">
+                                <p>Nomination probability</p>
+                                <p className="font-semibold text-zinc-900">{nominationProbabilityLabel(candidate.nominationProbability)}</p>
+                              </div>
+                            </div>
+                          </summary>
+
+                          <div className="mt-4 overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+                            <table className="min-w-full divide-y divide-zinc-200 text-left text-sm text-zinc-700">
+                              <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+                                <tr>
+                                  <th className="px-3 py-2 font-semibold">Opponent</th>
+                                  <th className="px-3 py-2 font-semibold">Opp. Nomination</th>
+                                  <th className="px-3 py-2 font-semibold">Win Chance</th>
+                                  <th className="px-3 py-2 font-semibold">Matchup Value</th>
+                                  <th className="px-3 py-2 font-semibold">Contribution</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-zinc-200">
+                                {candidate.breakdown.map((detail: { opponentId: string; opponentName: string; opponentNominationProbability: number; ownGeneralWinProbability: number; expectedValueAgainstOpponent: number; weightedContribution: number; }) => (
+                                  <tr key={detail.opponentId}>
+                                    <td className="px-3 py-2 font-medium text-zinc-900">{detail.opponentName}</td>
+                                    <td className="px-3 py-2">{percentLabel(detail.opponentNominationProbability)}</td>
+                                    <td className="px-3 py-2">{percentLabel(detail.ownGeneralWinProbability)}</td>
+                                    <td className="px-3 py-2">{detail.expectedValueAgainstOpponent.toFixed(2)}</td>
+                                    <td className="px-3 py-2 font-semibold text-zinc-900">{detail.weightedContribution.toFixed(2)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </details>
+                      ))}
+                    </div>
+                  </section>
+
+                  <details className="vm-card vm-reveal rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5" style={{ animationDelay: "240ms" }}>
+                    <summary className="cursor-pointer text-lg font-semibold text-zinc-900">How The Math Works</summary>
+                    <div className="mt-3">
+                      <button
+                        onClick={() => setStage("questions")}
+                        className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                      >
+                        Review answers
+                      </button>
+                      <p className="mt-3 text-sm text-zinc-600">
+                        {isMultiCandidateMode
+                          ? "We combine your ratings, primary matchup answers, and general-election odds into nomination probabilities and expected general-election value."
+                          : "We combine your candidate ratings with primary odds and general-election odds to compute expected value in the two-candidate model."}
+                      </p>
+
+                      <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 font-mono text-xs text-zinc-700">
+{dynamicFormulaText}
+                      </div>
+
+                      {isMultiCandidateMode ? (
+                        <div className="mt-4 rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-700">
+                          <p>
+                            When a party has three or more candidates, Voteometer turns the same-party pairwise primary answers into a nomination probability for each candidate using normalized pairwise log-odds.
+                          </p>
+                          <p className="mt-2">
+                            That nomination probability is then multiplied by the candidate's expected general-election value against the opposing field.
+                          </p>
+                        </div>
+                      ) : (
+                        <details className="mt-4 rounded-xl border border-zinc-200 bg-white p-4">
+                          <summary className="cursor-pointer text-sm font-semibold text-zinc-800">Worked example (expand)</summary>
+                          <div className="mt-3 space-y-2 text-sm text-zinc-700">
+                            <p>D1P = 5, D2P = 9, R1P = -10, R2P = -8</p>
+                            <p>R1W = 0.9, R2W = 0.1</p>
+                            <p>D1R1 = 0.7, D1R2 = 0.5, D2R1 = 0.4, D2R2 = 0.2</p>
+                            <p className="pt-1 font-medium">D1 = 3.15 + 0.25 - 2.70 - 0.32 = 0.38</p>
+                            <p className="font-medium">D2 = 3.24 + 0.18 - 5.40 - 0.64 = -2.62</p>
+                          </div>
+                        </details>
+                      )}
+                    </div>
+                  </details>
+                </div>
+
+                <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+                  <section className="vm-card vm-reveal rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5" style={{ animationDelay: "150ms" }}>
+                    <h2 className="text-lg font-semibold text-zinc-900">Opposing Field Assumptions</h2>
+                    <p className="mt-1 text-sm text-zinc-600">These are the nomination probabilities currently assigned to the opposing party candidates.</p>
+                    <div className="mt-4 space-y-2">
+                      {opposingPartyCandidates.map((candidate) => (
+                        <div key={candidate.id} className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+                          <div>
+                            <p className="font-medium text-zinc-900">{candidate.name}</p>
+                            <p className="text-xs text-zinc-500">Rating: {getCandidateRating(candidate)}</p>
+                          </div>
+                          <p className="font-semibold text-zinc-900">
+                            {opponentPrimaryIsModeled
+                              ? percentLabel(opponentPrimaryProbabilities.get(candidate.id) ?? 0)
+                              : opposingPartyCandidates.length === 1
+                              ? "100%"
+                              : percentLabel(opponentPrimaryProbabilities.get(candidate.id) ?? 0)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+
+                  {!demoMode && (
+                    <details className="vm-card vm-reveal rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5" style={{ animationDelay: "280ms" }}>
+                      <summary className="cursor-pointer text-lg font-semibold text-zinc-900">Debug Primary Inputs</summary>
+                      <p className="mt-2 text-sm text-zinc-600">This shows the raw same-party primary values the nomination model is currently using.</p>
+                      <div className="mt-4 space-y-3">
+                        {[{ title: `${userParty} primary`, rows: primaryDebugRows(ownPartyCandidates, userParty) }, { title: `${opponentParty} primary`, rows: primaryDebugRows(opposingPartyCandidates, opponentParty) }].map((section) => (
+                          <details key={section.title} className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                            <summary className="cursor-pointer text-sm font-semibold text-zinc-900">{section.title}</summary>
+                            <div className="mt-3 overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+                              <table className="min-w-full divide-y divide-zinc-200 text-left text-sm text-zinc-700">
+                                <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+                                  <tr>
+                                    <th className="px-3 py-2 font-semibold">Matchup</th>
+                                    <th className="px-3 py-2 font-semibold">Used Prob.</th>
+                                    <th className="px-3 py-2 font-semibold">Source</th>
+                                    <th className="px-3 py-2 font-semibold">Answer Key</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-zinc-200">
+                                  {section.rows.length > 0 ? section.rows.map((row) => (
+                                    <tr key={row.id}>
+                                      <td className="px-3 py-2 font-medium text-zinc-900">{row.leftName} vs {row.rightName}</td>
+                                      <td className="px-3 py-2">{percentLabel(row.probability)}</td>
+                                      <td className="px-3 py-2">{row.source}</td>
+                                      <td className="px-3 py-2 text-xs text-zinc-500">{row.answerId ?? "none"}</td>
+                                    </tr>
+                                  )) : (
+                                    <tr>
+                                      <td colSpan={4} className="px-3 py-3 text-sm text-zinc-500">No same-party matchup inputs for this side.</td>
+                                    </tr>
+                                  )}
+                                </tbody>
+                              </table>
+                            </div>
+                          </details>
+                        ))}
                       </div>
                     </details>
                   )}
-                </section>
+                </aside>
               </div>
-
-              <aside className="space-y-6">
-                <section className="rounded-2xl border border-emerald-800/20 bg-gradient-to-br from-zinc-900 via-zinc-900 to-emerald-900 p-6 text-white shadow-[0_20px_50px_rgba(17,24,39,0.35)] transition-all duration-300 hover:-translate-y-0.5">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Recommended Candidate</p>
-                  {recommendedCandidate ? (
-                    <>
-                      <h2 className="mt-3 text-4xl font-bold leading-tight md:text-5xl">{recommendedCandidate.name}</h2>
-                      <p className="mt-1 text-sm text-zinc-300">{recommendedCandidate.party}</p>
-                      <div className="mt-5 rounded-xl border border-white/10 bg-white/10 p-3">
-                        <p className="text-xs uppercase tracking-wide text-zinc-300">Power Number</p>
-                        <p className="mt-1 text-2xl font-semibold">{recommendedCandidate.powerNumber.toFixed(2)}</p>
-                      </div>
-                      <div className="mt-3 rounded-xl border border-white/10 bg-white/10 p-3">
-                        <p className="text-xs uppercase tracking-wide text-zinc-300">Nomination Probability</p>
-                        <p className="mt-1 text-sm font-medium text-zinc-100">{nominationProbabilityLabel(recommendedCandidate.nominationProbability)}</p>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="mt-3 text-sm text-zinc-300">No recommendation available yet.</p>
-                  )}
-                </section>
-
-                <section className="vm-card rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5">
-                  <h2 className="text-lg font-semibold text-zinc-900">Opposing Field Assumptions</h2>
-                  <p className="mt-1 text-sm text-zinc-600">These are the nomination probabilities currently assigned to the opposing party candidates.</p>
-                  <div className="mt-4 space-y-2">
-                    {opposingPartyCandidates.map((candidate) => (
-                      <div key={candidate.id} className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
-                        <div>
-                          <p className="font-medium text-zinc-900">{candidate.name}</p>
-                          <p className="text-xs text-zinc-500">Rating: {getCandidateRating(candidate)}</p>
-                        </div>
-                        <p className="font-semibold text-zinc-900">
-                          {opponentPrimaryIsModeled
-                            ? percentLabel(opponentPrimaryProbabilities.get(candidate.id) ?? 0)
-                            : opposingPartyCandidates.length === 1
-                            ? "100%"
-                            : percentLabel(opponentPrimaryProbabilities.get(candidate.id) ?? 0)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="vm-card rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5">
-                  <h2 className="text-lg font-semibold text-zinc-900">Debug Primary Inputs</h2>
-                  <p className="mt-1 text-sm text-zinc-600">This shows the raw same-party primary values the nomination model is currently using.</p>
-                  <div className="mt-4 space-y-3">
-                    {[{ title: `${userParty} primary`, rows: primaryDebugRows(ownPartyCandidates, userParty) }, { title: `${opponentParty} primary`, rows: primaryDebugRows(opposingPartyCandidates, opponentParty) }].map((section) => (
-                      <details key={section.title} className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-                        <summary className="cursor-pointer text-sm font-semibold text-zinc-900">{section.title}</summary>
-                        <div className="mt-3 overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-                          <table className="min-w-full divide-y divide-zinc-200 text-left text-sm text-zinc-700">
-                            <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
-                              <tr>
-                                <th className="px-3 py-2 font-semibold">Matchup</th>
-                                <th className="px-3 py-2 font-semibold">Used Prob.</th>
-                                <th className="px-3 py-2 font-semibold">Source</th>
-                                <th className="px-3 py-2 font-semibold">Answer Key</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-200">
-                              {section.rows.length > 0 ? section.rows.map((row) => (
-                                <tr key={row.id}>
-                                  <td className="px-3 py-2 font-medium text-zinc-900">{row.leftName} vs {row.rightName}</td>
-                                  <td className="px-3 py-2">{percentLabel(row.probability)}</td>
-                                  <td className="px-3 py-2">{row.source}</td>
-                                  <td className="px-3 py-2 text-xs text-zinc-500">{row.answerId ?? "none"}</td>
-                                </tr>
-                              )) : (
-                                <tr>
-                                  <td colSpan={4} className="px-3 py-3 text-sm text-zinc-500">No same-party matchup inputs for this side.</td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </details>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="vm-card rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5">
-                  <div className="mb-4 flex items-start justify-between gap-2">
-                    <div>
-                      <h2 className="text-lg font-semibold text-zinc-900">Power Number Comparison</h2>
-                      <p className="text-sm text-zinc-600">Compare overall scores across your party candidates.</p>
-                    </div>
-                    <button
-                      onClick={() => setStage("setup")}
-                      className="rounded-lg border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
-                    >
-                      New setup
-                    </button>
-                  </div>
-                  <div className="h-[360px]">
-                    <Bar data={powerNumberData} options={chartOptions} />
-                  </div>
-                  <div className="mt-5 space-y-2">
-                    {calculatePowerNumbers.map((candidate) => (
-                      <div key={candidate.id} className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
-                        <div>
-                          <p className="font-medium text-zinc-900">{candidate.name}</p>
-                          <p className="text-xs text-zinc-500">Nomination probability: {nominationProbabilityLabel(candidate.nominationProbability)}</p>
-                        </div>
-                        <p className="font-semibold text-zinc-900">{candidate.powerNumber.toFixed(2)}</p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="vm-card rounded-2xl p-6 transition-all duration-300 hover:-translate-y-0.5">
-                  <h2 className="text-lg font-semibold text-zinc-900">Why Each Score Looks Like This</h2>
-                  <p className="mt-1 text-sm text-zinc-600">Expand a candidate to see the compact contribution table for their score.</p>
-                  <div className="mt-4 space-y-4">
-                    {calculatePowerNumbers.map((candidate) => (
-                      <details key={candidate.id} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                        <summary className="cursor-pointer list-none">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div>
-                              <h3 className="text-base font-semibold text-zinc-900">{candidate.name}</h3>
-                              <p className="mt-1 text-sm text-zinc-600">
-                                Rating {getCandidateRating(candidate)}. Presidency value if nominated: {candidate.presidencyValueIfNominated.toFixed(2)}. Final power number: {candidate.powerNumber.toFixed(2)}.
-                              </p>
-                            </div>
-                            <div className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-right text-sm text-zinc-700">
-                              <p>Nomination probability</p>
-                              <p className="font-semibold text-zinc-900">{nominationProbabilityLabel(candidate.nominationProbability)}</p>
-                            </div>
-                          </div>
-                        </summary>
-
-                        <div className="mt-4 overflow-x-auto rounded-xl border border-zinc-200 bg-white">
-                          <table className="min-w-full divide-y divide-zinc-200 text-left text-sm text-zinc-700">
-                            <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
-                              <tr>
-                                <th className="px-3 py-2 font-semibold">Opponent</th>
-                                <th className="px-3 py-2 font-semibold">Opp. Nom.</th>
-                                <th className="px-3 py-2 font-semibold">Win Chance</th>
-                                <th className="px-3 py-2 font-semibold">Matchup Value</th>
-                                <th className="px-3 py-2 font-semibold">Contribution</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-zinc-200">
-                              {candidate.breakdown.map((detail: { opponentId: string; opponentName: string; opponentNominationProbability: number; ownGeneralWinProbability: number; expectedValueAgainstOpponent: number; weightedContribution: number; }) => (
-                                <tr key={detail.opponentId}>
-                                  <td className="px-3 py-2 font-medium text-zinc-900">{detail.opponentName}</td>
-                                  <td className="px-3 py-2">{percentLabel(detail.opponentNominationProbability)}</td>
-                                  <td className="px-3 py-2">{percentLabel(detail.ownGeneralWinProbability)}</td>
-                                  <td className="px-3 py-2">{detail.expectedValueAgainstOpponent.toFixed(2)}</td>
-                                  <td className="px-3 py-2 font-semibold text-zinc-900">{detail.weightedContribution.toFixed(2)}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </details>
-                    ))}
-                  </div>
-                </section>
-              </aside>
             </div>
           )}
         </div>
