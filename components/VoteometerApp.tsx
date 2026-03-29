@@ -25,7 +25,6 @@ export default function VoteometerApp() {
     q1: 50,
     q2: 75,
   });
-  const [darkMode, setDarkMode] = useState(false);
 
   const democrats = candidates.filter((candidate) => candidate.party === "Democrat");
   const republicans = candidates.filter((candidate) => candidate.party === "Republican");
@@ -62,18 +61,6 @@ export default function VoteometerApp() {
       return filteredAnswers;
     });
   }, [userParty]);
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [darkMode]);
-
-  useEffect(() => {
-    console.log("HTML Classes:", document.documentElement.className);
-  }, [darkMode]);
 
   const handleAnswerChange = (question: string, answer: number) => {
     setSelectedAnswers((prev) => ({ ...prev, [question]: answer }));
@@ -150,8 +137,31 @@ export default function VoteometerApp() {
       , { id: "", name: "", party: userParty, rating: 0, powerNumber: 0 }); // Default to a valid candidate object
   }, [calculatePowerNumbers, userParty]);
 
-  const toggleDarkMode = () => {
-    setDarkMode((prev) => !prev);
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: {
+          color: "#000000",
+        },
+      },
+      title: {
+        display: true,
+        text: "Power Number Comparison",
+        color: "#000000",
+      },
+    },
+    scales: {
+      x: {
+        ticks: { color: "#000000" },
+        grid: { color: "rgba(0,0,0,0.1)" },
+      },
+      y: {
+        ticks: { color: "#000000" },
+        grid: { color: "rgba(0,0,0,0.1)" },
+      },
+    },
   };
 
   const powerNumberData = {
@@ -160,8 +170,8 @@ export default function VoteometerApp() {
       {
         label: "Power Numbers",
         data: calculatePowerNumbers.map((candidate) => candidate.powerNumber),
-        backgroundColor: "rgba(75, 192, 192, 0.2)",
-        borderColor: "rgba(75, 192, 192, 1)",
+        backgroundColor: "rgba(75,192,192,0.2)",
+        borderColor: "rgba(75,192,192,1)",
         borderWidth: 1,
       },
     ],
@@ -169,37 +179,28 @@ export default function VoteometerApp() {
 
   useEffect(() => {
     console.log("Datasets:", powerNumberData.datasets);
-    console.log("Dark Mode State:", darkMode);
-  }, [powerNumberData, darkMode]);
+  }, [powerNumberData]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100">
-      <div className="flex justify-end p-4">
-        <button
-          onClick={toggleDarkMode}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-        >
-          {darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-        </button>
-      </div>
+    <div className="min-h-screen bg-white text-black">
       <main className="min-h-screen p-6">
         <div className="mx-auto max-w-7xl space-y-6">
           <div>
             <h1 className="text-4xl font-bold tracking-tight">Voteometer</h1>
-            <p className="mt-2 max-w-3xl text-slate-600 dark:text-slate-400">
+            <p className="mt-2 max-w-3xl text-gray-600">
               Compare how much you like each candidate with how likely they are to win.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <div className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300">Choose your party</div>
+          <div className="rounded-2xl border border-gray-300 bg-white p-5 shadow-sm">
+            <div className="mb-3 text-sm font-medium text-gray-700">Choose your party</div>
             <div className="flex gap-3">
               <button
                 onClick={() => setUserParty("Democrat")}
                 className={`rounded-lg px-4 py-2 ${
                   userParty === "Democrat"
-                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                    : "border border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
+                    ? "bg-black text-white"
+                    : "border border-gray-300 bg-white text-black"
                 }`}
               >
                 Democrat
@@ -208,8 +209,8 @@ export default function VoteometerApp() {
                 onClick={() => setUserParty("Republican")}
                 className={`rounded-lg px-4 py-2 ${
                   userParty === "Republican"
-                    ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
-                    : "border border-slate-300 bg-white dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
+                    ? "bg-black text-white"
+                    : "border border-gray-300 bg-white text-black"
                 }`}
               >
                 Republican
@@ -217,8 +218,8 @@ export default function VoteometerApp() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <div className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300">{userParty} candidates</div>
+          <div className="rounded-2xl border border-gray-300 bg-white p-5 shadow-sm">
+            <div className="mb-3 text-sm font-medium text-gray-700">{userParty} candidates</div>
             <div>
               <button
                 onClick={() => {
@@ -227,7 +228,7 @@ export default function VoteometerApp() {
                     handleAddCandidate(userParty, candidateName);
                   }
                 }}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 dark:border-slate-600 dark:text-slate-100 dark:hover:bg-slate-700"
+                className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-black hover:bg-gray-50"
               >
                 Add candidate
               </button>
@@ -253,16 +254,16 @@ export default function VoteometerApp() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <h2 className="text-lg font-medium text-slate-700 dark:text-slate-300">Answer the questions</h2>
+          <div className="rounded-2xl border border-gray-300 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-medium text-gray-700">Answer the questions</h2>
             <ul className="mt-4 space-y-6">
               {questions.map((q) => (
                 <li key={q.id} className="flex flex-col">
-                  <span className="text-sm text-slate-700 dark:text-slate-300">{q.question}</span>
+                  <span className="text-sm text-gray-700">{q.question}</span>
                   {q.question.includes("rate") ? (
                     <div className="flex gap-2">
                       {[...Array(11).keys()].map((value) => (
-                        <label key={value} className="text-slate-700 dark:text-slate-300">
+                        <label key={value} className="text-gray-700">
                           <input
                             type="radio"
                             name={q.id}
@@ -280,7 +281,7 @@ export default function VoteometerApp() {
                       onChange={(e) =>
                         handleAnswerChange(q.id, parseFloat(e.target.value) || 0)
                       }
-                      className="w-20 rounded-md border border-slate-300 p-2 text-sm dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100"
+                      className="w-20 rounded-md border border-gray-300 p-2 text-sm text-black"
                     />
                   )}
                 </li>
@@ -288,37 +289,37 @@ export default function VoteometerApp() {
             </ul>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <h2 className="text-lg font-medium text-slate-700 dark:text-slate-300">Recommended Candidate</h2>
+          <div className="rounded-2xl border border-gray-300 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-medium text-gray-700">Recommended Candidate</h2>
             {recommendedCandidate ? (
               <div className="mt-4">
-                <p className="text-sm text-slate-700 dark:text-slate-300">
+                <p className="text-sm text-gray-700">
                   Based on your answers, we recommend:
                 </p>
-                <p className="mt-2 text-xl font-bold text-slate-900 dark:text-slate-100">
+                <p className="mt-2 text-xl font-bold text-black">
                   {recommendedCandidate.name} ({recommendedCandidate.party})
                 </p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+                <p className="text-sm text-gray-600">
                   Power Number: {recommendedCandidate.powerNumber.toFixed(2)}
                 </p>
               </div>
             ) : (
-              <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">No recommendation available.</p>
+              <p className="mt-4 text-sm text-gray-600">No recommendation available.</p>
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <h2 className="text-lg font-medium text-slate-700 dark:text-slate-300">How the Math is Calculated</h2>
-            <p className="mt-2 text-slate-600 dark:text-slate-400">The Power Number is calculated using the following formula:</p>
-            <ul className="mt-2 list-disc pl-5 text-slate-600 dark:text-slate-400">
+          <div className="rounded-2xl border border-gray-300 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-medium text-gray-700">How the Math is Calculated</h2>
+            <p className="mt-2 text-gray-600">The Power Number is calculated using the following formula:</p>
+            <ul className="mt-2 list-disc pl-5 text-gray-600">
               <li>Column 1: [Candidate Strength] x [Opponent Primary Win Probability] x [General Election Win Probability]</li>
             </ul>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
-            <h2 className="text-lg font-medium text-slate-700 dark:text-slate-300">Power Number Comparison</h2>
+          <div className="rounded-2xl border border-gray-300 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-medium text-gray-700">Power Number Comparison</h2>
             <div style={{ height: '400px', width: '100%' }} className="mt-4">
-              <Bar data={powerNumberData} />
+              <Bar data={powerNumberData} options={chartOptions} />
             </div>
           </div>
         </div>
