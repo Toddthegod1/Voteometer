@@ -7,6 +7,9 @@ Voteometer is a Next.js web app for comparing primary candidates based on two th
 
 The app turns those inputs into a "Power Number" so a voter can compare candidates in a more structured way instead of looking at preference and electability separately.
 
+## Who Worked On It
+It was a solo project by Todd Klinger! However the original idea was from my former Table Tennis Coach Larry Hodges who was the brain behind the probability equations!
+
 ## What The App Does
 
 Voteometer lets a user:
@@ -116,3 +119,14 @@ Natural next steps for the project would be:
 - add clearer warnings when nomination probabilities are still fallback-driven
 - persist sessions or share saved setups
 - add more polished explanations for the math in the UI
+
+## AI Usage
+
+AI (ChatGPT and Github Copilot) was used to:
+- assist with debugging (Tailwind dark mode, React issues)
+- help design features such as expert estimate autofill
+- Implementing multi-candidate math logic
+- UI design in general
+- Gave the idea for using Vercel!
+
+All implementation decisions and final code integration were done by me!
