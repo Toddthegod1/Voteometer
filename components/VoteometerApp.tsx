@@ -187,12 +187,14 @@ export default function VoteometerApp() {
   }, [candidates, selectedAnswers, userParty]);
 
   const recommendedCandidate = useMemo(() => {
-    if (!calculatePowerNumbers.length) return null;
-    return calculatePowerNumbers
-      .filter((candidate) => candidate.party === userParty) // Only consider candidates from the selected party
-      .reduce((best, candidate) =>
-        candidate.powerNumber > best.powerNumber ? candidate : best
-      , { id: "", name: "", party: userParty, rating: 0, powerNumber: 0 }); // Default to a valid candidate object
+    const ownPartyCandidates = calculatePowerNumbers.filter(
+      (candidate) => candidate.party === userParty
+    );
+    if (!ownPartyCandidates.length) return null;
+
+    return ownPartyCandidates.reduce((best, candidate) =>
+      candidate.powerNumber > best.powerNumber ? candidate : best
+    , ownPartyCandidates[0]);
   }, [calculatePowerNumbers, userParty]);
 
   const chartOptions = {
