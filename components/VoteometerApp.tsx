@@ -312,7 +312,9 @@ export default function VoteometerApp() {
 
           <div>
             <h2>Power Number Comparison</h2>
-            <Bar data={powerNumberData} />
+            <div style={{ height: '400px', width: '100%' }}>
+              <Bar data={powerNumberData} />
+            </div>
           </div>
         </div>
       </main>
