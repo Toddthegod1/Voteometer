@@ -69,6 +69,7 @@ export default function VoteometerApp() {
   const [demoMode, setDemoMode] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userParty, setUserParty] = useState<Party>("Democrat");
+  const [editingParty, setEditingParty] = useState<Party>("Democrat");
   const [candidates, setCandidates] = useState<Candidate[]>(seedCandidates);
   const [questions, setQuestions] = useState<{ question: string; id: string }[]>(() =>
     buildQuestionsForCandidates(seedCandidates, "Democrat")
@@ -530,8 +531,9 @@ export default function VoteometerApp() {
     console.log("Datasets:", powerNumberData.datasets);
   }, [powerNumberData]);
 
-  const suggestedCandidatesForParty = suggested2028Candidates[userParty].filter(
-    (name) => !ownPartyCandidates.some((candidate) => candidate.name.toLowerCase() === name.toLowerCase())
+  const candidatesInEditingParty = candidates.filter((candidate) => candidate.party === editingParty);
+  const suggestedCandidatesForParty = suggested2028Candidates[editingParty].filter(
+    (name) => !candidatesInEditingParty.some((candidate) => candidate.name.toLowerCase() === name.toLowerCase())
   );
   const currentQuestion = questions[currentQuestionIndex];
   const totalQuestions = questions.length;
@@ -645,8 +647,11 @@ export default function VoteometerApp() {
                   {demoMode ? "Demo Mode: On (Debug Hidden)" : "Demo Mode: Off (Debug Visible)"}
                 </button>
               </div>
-              <p className="mt-1 text-sm text-zinc-600">Choose your party and confirm candidates before starting the flashcards.</p>
+              <p className="mt-1 text-sm text-zinc-600">Choose the party you want to win the general election, then edit either party's candidate list before starting the flashcards.</p>
               <p className="mt-2 text-sm text-zinc-500">Voteometer always asks about every candidate's rating, the other party's primary odds, and cross-party general-election matchups. If either party has three or more candidates, it also asks same-party primary matchups for that party and converts them into nomination probabilities.</p>
+
+              <p className="mt-4 text-sm font-semibold text-zinc-800">Which party would you prefer to win the general election?</p>
+              <p className="mt-1 text-xs text-zinc-500">This selection sets your preferred winning party for the recommendation model.</p>
 
               <div className="mt-5 inline-flex rounded-xl border border-zinc-300 bg-zinc-50 p-1">
                 <button
@@ -671,12 +676,36 @@ export default function VoteometerApp() {
                 </button>
               </div>
 
+              <p className="mt-5 text-sm font-semibold text-zinc-800">Which party's candidates do you want to edit right now?</p>
+              <div className="mt-2 inline-flex rounded-xl border border-zinc-300 bg-zinc-50 p-1">
+                <button
+                  onClick={() => setEditingParty("Democrat")}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                    editingParty === "Democrat"
+                      ? "bg-black text-white"
+                      : "text-zinc-700 hover:bg-zinc-100"
+                  }`}
+                >
+                  Edit Democrats
+                </button>
+                <button
+                  onClick={() => setEditingParty("Republican")}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                    editingParty === "Republican"
+                      ? "bg-black text-white"
+                      : "text-zinc-700 hover:bg-zinc-100"
+                  }`}
+                >
+                  Edit Republicans
+                </button>
+              </div>
+
               <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-700">Potential 2028 candidates</h3>
                     <p className="mt-1 max-w-2xl text-sm text-zinc-600">
-                      Tap a suggested name to add it to your {userParty.toLowerCase()} candidate list.
+                      Tap a suggested name to add it to your {editingParty.toLowerCase()} candidate list.
                     </p>
                   </div>
                   <span className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-xs font-medium text-zinc-600">
@@ -689,7 +718,7 @@ export default function VoteometerApp() {
                     {suggestedCandidatesForParty.map((candidateName) => (
                       <li key={candidateName}>
                         <button
-                          onClick={() => handleAddCandidate(userParty, candidateName)}
+                          onClick={() => handleAddCandidate(editingParty, candidateName)}
                           className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100"
                         >
                           + {candidateName}
@@ -698,18 +727,18 @@ export default function VoteometerApp() {
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-4 text-sm text-zinc-600">All suggested {userParty.toLowerCase()} candidates are already in your list.</p>
+                  <p className="mt-4 text-sm text-zinc-600">All suggested {editingParty.toLowerCase()} candidates are already in your list.</p>
                 )}
               </div>
 
               <div className="mt-6 border-t border-zinc-200 pt-5">
                 <div className="flex items-center justify-between gap-4">
-                  <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-700">{userParty} candidates</h3>
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-700">{editingParty} candidates</h3>
                   <button
                     onClick={() => {
                       const candidateName = prompt("Enter candidate name:");
                       if (candidateName) {
-                        handleAddCandidate(userParty, candidateName);
+                        handleAddCandidate(editingParty, candidateName);
                       }
                     }}
                     className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm font-medium text-zinc-900 transition-all duration-200 hover:-translate-y-0.5 hover:bg-zinc-50"
@@ -719,7 +748,7 @@ export default function VoteometerApp() {
                 </div>
 
                 <ul className="mt-4 flex flex-wrap gap-2">
-                  {ownPartyCandidates.map((candidate) => (
+                  {candidatesInEditingParty.map((candidate) => (
                     <li key={candidate.id} className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm transition-colors hover:bg-zinc-100">
                       <span className="font-medium text-zinc-800">{candidate.name}</span>
                       <button
