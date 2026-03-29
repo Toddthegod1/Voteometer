@@ -71,6 +71,10 @@ export default function VoteometerApp() {
     }
   }, [darkMode]);
 
+  useEffect(() => {
+    console.log("HTML Classes:", document.documentElement.className);
+  }, [darkMode]);
+
   const handleAnswerChange = (question: string, answer: number) => {
     setSelectedAnswers((prev) => ({ ...prev, [question]: answer }));
   };
