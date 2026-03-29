@@ -6,7 +6,7 @@ Instead of asking *“Who do I like?”* or *“Who can win?”*, Voteometer ans
 
 ---
 
-## 🚨 Why This Matters
+## 🚨 Purpose
 
 Voters often face a tradeoff between choosing the candidate they personally prefer and the one most likely to win.
 
@@ -53,7 +53,7 @@ Voteometer integrates with **Polymarket** to provide real-world probability esti
 
 * Data is fetched via a backend API route
 * Cached for performance (5 minutes)
-* Falls back to neutral estimates when data is unavailable
+* Automatically fills some general-election probabilities using market data, with fallback estimates when needed
 
 ---
 
@@ -110,5 +110,5 @@ All final design decisions and implementation were completed by the developer.
 
 ## 🎥 Demo
 
-[Once I make video link I will put here]
+https://youtu.be/499npzav4D0
 
