@@ -6,6 +6,61 @@ import { seedCandidates, seedMatchups } from "@/lib/seedData";
 import type { Candidate, Matchup, Party } from "@/lib/types";
 import { Bar } from "react-chartjs-2";
 
+type NameMatchup = {
+  democratName: string;
+  republicanName: string;
+  democratWinProb: number;
+  source: "polymarket" | "seed-exact" | "name-estimate";
+};
+
+type ExpertSource = NameMatchup["source"];
+
+const suggested2028Candidates: Record<Party, string[]> = {
+  Democrat: ["Kamala Harris", "Gavin Newsom", "Gretchen Whitmer", "Josh Shapiro", "Pete Buttigieg", "Wes Moore"],
+  Republican: ["JD Vance", "Ron DeSantis", "Nikki Haley", "Glenn Youngkin", "Vivek Ramaswamy", "Marco Rubio"],
+};
+
+function clampProbability(probability: number) {
+  return Math.max(0.01, Math.min(0.99, probability));
+}
+
+function buildQuestionsForCandidates(candidates: Candidate[], userParty: Party) {
+  const ownCandidates = candidates.filter((candidate) => candidate.party === userParty);
+  const opponentParty: Party = userParty === "Democrat" ? "Republican" : "Democrat";
+  const opponentCandidates = candidates.filter((candidate) => candidate.party === opponentParty);
+  const allCandidates = [...ownCandidates, ...opponentCandidates];
+
+  const ratingQuestions = allCandidates.map((candidate) => ({
+    question: `On a scale of -10 to 10, how would you rate ${candidate.name} as president?`,
+    id: `rating:${candidate.party}:${candidate.name}`,
+  }));
+
+  const ownPrimaryQuestions = ownCandidates.length > 2
+    ? ownCandidates.flatMap((candidate, index) =>
+        ownCandidates.slice(index + 1).map((opponent) => ({
+          question: `In ${candidate.name} vs. ${opponent.name}, what is the probability that ${candidate.name} wins the ${candidate.party.toLowerCase()} primary?`,
+          id: `primary:${candidate.party}:${candidate.name}:${opponent.name}`,
+        }))
+      )
+    : [];
+
+  const opponentPrimaryQuestions = opponentCandidates.flatMap((candidate, index) =>
+    opponentCandidates.slice(index + 1).map((opponent) => ({
+      question: `In ${candidate.name} vs. ${opponent.name}, what is the probability that ${candidate.name} wins the ${candidate.party.toLowerCase()} primary?`,
+      id: `primary:${candidate.party}:${candidate.name}:${opponent.name}`,
+    }))
+  );
+
+  const generalElectionQuestions = ownCandidates.flatMap((ownCandidate) =>
+    opponentCandidates.map((opponent) => ({
+      question: `In ${ownCandidate.name} vs. ${opponent.name}, what is the probability that ${ownCandidate.name} wins?`,
+      id: `general:${ownCandidate.name}:${opponent.name}`,
+    }))
+  );
+
+  return [...ratingQuestions, ...ownPrimaryQuestions, ...opponentPrimaryQuestions, ...generalElectionQuestions];
+}
+
 // Register the required components
 ChartJS.register(CategoryScale, BarElement, LinearScale, Title, Tooltip);
 
@@ -14,61 +69,40 @@ export default function VoteometerApp() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userParty, setUserParty] = useState<Party>("Democrat");
   const [candidates, setCandidates] = useState<Candidate[]>(seedCandidates);
-  const [questions, setQuestions] = useState<{ question: string; id: string }[]>([
-    { question: "Static question 1", id: "q1" },
-    { question: "Static question 2", id: "q2" },
-  ]);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | number>>({
-    q1: 50,
-    q2: 75,
-  });
+  const [questions, setQuestions] = useState<{ question: string; id: string }[]>(() =>
+    buildQuestionsForCandidates(seedCandidates, "Democrat")
+  );
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string | number>>({});
   const [removedCandidateNames, setRemovedCandidateNames] = useState<string[]>([]);
   const [isApplyingExpertEstimates, setIsApplyingExpertEstimates] = useState(false);
   const [expertEstimateMessage, setExpertEstimateMessage] = useState<string | null>(null);
-
-  const partyQuestions: Record<Party, string[]> = {
-    Democrat: [
-      "On a scale of -10 to 10, how would you rate Biden as president?",
-      "On a scale of -10 to 10, how would you rate Sanders as president?",
-      "On a scale of -10 to 10, how would you rate Trump as president?",
-      "On a scale of -10 to 10, how would you rate DeSantis as president?",
-      "In Biden vs. Sanders, what is the probability that Biden wins?",
-      "In Trump vs. DeSantis, what is the probability that Trump wins?",
-      "In Biden vs. Trump, what is the probability Biden wins?",
-      "In Biden vs. DeSantis, what is the probability Biden wins?",
-      "In Sanders vs. Trump, what is the probability Sanders wins?",
-      "In Sanders vs. DeSantis, what is the probability Sanders wins?",
-    ],
-    Republican: [
-      "On a scale of -10 to 10, how would you rate Biden as president?",
-      "On a scale of -10 to 10, how would you rate Sanders as president?",
-      "On a scale of -10 to 10, how would you rate Trump as president?",
-      "On a scale of -10 to 10, how would you rate DeSantis as president?",
-      "In Trump vs. DeSantis, what is the probability that Trump wins?",
-      "In Biden vs. Sanders, what is the probability that Biden wins?",
-      "In Trump vs. Biden, what is the probability Trump wins?",
-      "In Trump vs. Sanders, what is the probability Trump wins?",
-      "In DeSantis vs. Biden, what is the probability DeSantis wins?",
-      "In DeSantis vs. Sanders, what is the probability DeSantis wins?",
-    ],
-  };
+  const [expertEstimateSources, setExpertEstimateSources] = useState<Record<string, ExpertSource>>({});
 
   useEffect(() => {
-    // Filter questions and reset answers for the selected party
-    const defaultQuestions = partyQuestions[userParty]
-      .filter((q) => !removedCandidateNames.some((name) => q.includes(name)))
-      .map((q) => ({ question: q, id: q }));
-    setQuestions(defaultQuestions);
+    const generatedQuestions = buildQuestionsForCandidates(candidates, userParty);
+    setQuestions(generatedQuestions);
     setSelectedAnswers((prev) => {
       const filteredAnswers = Object.keys(prev)
-        .filter((key) => defaultQuestions.some((dq) => dq.id === key))
+        .filter((key) => generatedQuestions.some((generatedQuestion) => generatedQuestion.id === key))
         .reduce((acc, key) => ({ ...acc, [key]: prev[key] }), {});
       return filteredAnswers;
     });
-  }, [userParty, removedCandidateNames]);
+    setExpertEstimateSources((prev) =>
+      Object.keys(prev)
+        .filter((key) => generatedQuestions.some((generatedQuestion) => generatedQuestion.id === key))
+        .reduce((acc, key) => ({ ...acc, [key]: prev[key] }), {} as Record<string, ExpertSource>)
+    );
+  }, [candidates, userParty]);
 
-  const handleAnswerChange = (question: string, answer: number) => {
+  const handleAnswerChange = (question: string, answer: number, origin: "manual" | "expert" = "manual") => {
     setSelectedAnswers((prev) => ({ ...prev, [question]: answer }));
+    if (origin === "manual") {
+      setExpertEstimateSources((prev) => {
+        if (!(question in prev)) return prev;
+        const { [question]: _discard, ...rest } = prev;
+        return rest;
+      });
+    }
   };
 
   const handleAddCandidate = (party: Party, candidateName: string) => {
@@ -94,24 +128,6 @@ export default function VoteometerApp() {
       if (!prev.includes(normalizedName)) return prev;
       return prev.filter((name) => name !== normalizedName);
     });
-
-    // Add a question for the new candidate
-    const newQuestions = [
-      { question: `On a scale of -10 to 10, how would you rate ${normalizedName} as a candidate?`, id: normalizedName },
-    ];
-
-    // Add head-to-head questions for the new candidate against all other candidates
-    candidates.forEach((opponent) => {
-      if (opponent.id !== newCandidate.id) {
-        const [first, second] = [normalizedName, opponent.name].sort(); // Ensure consistent ordering
-        newQuestions.push({
-          question: `In ${first} vs. ${second}, what is the probability that ${first} wins?`,
-          id: `${first}-vs-${second}`,
-        });
-      }
-    });
-
-    setQuestions((prevQuestions) => [...prevQuestions, ...newQuestions]);
   };
 
   const handleRemoveCandidate = (candidateToRemove: Candidate) => {
@@ -126,6 +142,11 @@ export default function VoteometerApp() {
       Object.keys(prevAnswers)
         .filter((key) => !key.includes(candidateToRemove.name))
         .reduce((acc, key) => ({ ...acc, [key]: prevAnswers[key] }), {})
+    );
+    setExpertEstimateSources((prevSources) =>
+      Object.keys(prevSources)
+        .filter((key) => !key.includes(candidateToRemove.name))
+        .reduce((acc, key) => ({ ...acc, [key]: prevSources[key] }), {} as Record<string, ExpertSource>)
     );
   };
 
@@ -143,12 +164,39 @@ export default function VoteometerApp() {
     return Array.from(uniqueById.values()).slice(0, 2);
   };
 
-  const getExpertProbabilityForQuestion = (question: string, matchups: Matchup[]) => {
+  const getExpertProbabilityForQuestion = (
+    question: string,
+    matchups: Matchup[],
+    nameMatchups: NameMatchup[]
+  ): { probability: number; source: ExpertSource } | null => {
     if (question.toLowerCase().includes("rate")) return null;
 
     const [candidateA, candidateB] = getQuestionCandidates(question);
     if (!candidateA || !candidateB) return null;
     if (candidateA.party === candidateB.party) return null;
+
+    const winner = [candidateA, candidateB].find((candidate) =>
+      question.includes(`${candidate.name} wins`)
+    );
+    if (!winner) return null;
+
+    const democrat = candidateA.party === "Democrat" ? candidateA : candidateB;
+    const republican = candidateA.party === "Republican" ? candidateA : candidateB;
+
+    // Prefer explicit name-based lookups so custom candidates can still be estimated.
+    const byName = nameMatchups.find(
+      (m) =>
+        m.democratName.toLowerCase() === democrat.name.toLowerCase() &&
+        m.republicanName.toLowerCase() === republican.name.toLowerCase()
+    );
+    if (byName) {
+      return {
+        probability: winner.party === "Democrat"
+          ? byName.democratWinProb
+          : 100 - byName.democratWinProb,
+        source: byName.source,
+      };
+    }
 
     const matchup = matchups.find(
       (m) =>
@@ -157,11 +205,6 @@ export default function VoteometerApp() {
     );
     if (!matchup) return null;
 
-    const winner = [candidateA, candidateB].find((candidate) =>
-      question.includes(`${candidate.name} wins`)
-    );
-    if (!winner) return null;
-
     const democratCandidateId =
       candidateA.party === "Democrat" ? candidateA.id : candidateB.id;
     const democratWinProb =
@@ -169,7 +212,10 @@ export default function VoteometerApp() {
         ? matchup.democratWinProb
         : 100 - matchup.democratWinProb;
 
-    return winner.party === "Democrat" ? democratWinProb : 100 - democratWinProb;
+    return {
+      probability: winner.party === "Democrat" ? democratWinProb : 100 - democratWinProb,
+      source: "seed-exact",
+    };
   };
 
   const applyExpertEstimates = async (questionId?: string) => {
@@ -177,22 +223,41 @@ export default function VoteometerApp() {
     setExpertEstimateMessage(null);
 
     try {
-      const response = await fetch("/api/matchups");
+      const activeCandidateNames = Array.from(new Set(candidates.map((candidate) => candidate.name))).join(",");
+      const democrats = candidates
+        .filter((candidate) => candidate.party === "Democrat")
+        .map((candidate) => candidate.name)
+        .join(",");
+      const republicans = candidates
+        .filter((candidate) => candidate.party === "Republican")
+        .map((candidate) => candidate.name)
+        .join(",");
+      const response = await fetch(
+        `/api/matchups?electionYear=2028&candidates=${encodeURIComponent(activeCandidateNames)}&democrats=${encodeURIComponent(democrats)}&republicans=${encodeURIComponent(republicans)}`
+      );
       if (!response.ok) {
         throw new Error("Unable to fetch expert matchup data.");
       }
 
-      const matchups = (await response.json()) as Matchup[];
+      const payload = (await response.json()) as {
+        source?: string;
+        matchups?: Matchup[];
+        nameMatchups?: NameMatchup[];
+      };
+      const matchups = Array.isArray(payload.matchups) ? payload.matchups : [];
+      const nameMatchups = Array.isArray(payload.nameMatchups) ? payload.nameMatchups : [];
       const questionsToFill = questions.filter(
         (q) => !q.question.toLowerCase().includes("rate") && (!questionId || q.id === questionId)
       );
 
       let filledCount = 0;
       const updates: Record<string, number> = {};
+      const sourceUpdates: Record<string, ExpertSource> = {};
       for (const q of questionsToFill) {
-        const expertProb = getExpertProbabilityForQuestion(q.question, matchups);
-        if (typeof expertProb === "number") {
-          updates[q.id] = expertProb;
+        const expertProb = getExpertProbabilityForQuestion(q.question, matchups, nameMatchups);
+        if (expertProb) {
+          updates[q.id] = expertProb.probability;
+          sourceUpdates[q.id] = expertProb.source;
           filledCount += 1;
         }
       }
@@ -203,10 +268,11 @@ export default function VoteometerApp() {
       }
 
       setSelectedAnswers((prev) => ({ ...prev, ...updates }));
+      setExpertEstimateSources((prev) => ({ ...prev, ...sourceUpdates }));
       setExpertEstimateMessage(
         questionId
           ? "Expert estimate applied to this question."
-          : `Expert estimates applied to ${filledCount} electability questions.`
+          : `Expert estimates applied to ${filledCount} electability questions (${payload.source ?? "unknown source"}).`
       );
     } catch {
       setExpertEstimateMessage("Could not load expert estimates right now. Try again.");
@@ -217,7 +283,7 @@ export default function VoteometerApp() {
 
   const getCandidateRating = (candidate: Candidate) => {
     const ratingQuestion = Object.entries(selectedAnswers).find(([question]) =>
-      question.toLowerCase().includes("how would you rate") && question.includes(candidate.name)
+      question.startsWith("rating:") && question.includes(candidate.name)
     );
     if (ratingQuestion && typeof ratingQuestion[1] === "number") {
       return ratingQuestion[1] as number;
@@ -225,14 +291,76 @@ export default function VoteometerApp() {
     return candidate.rating;
   };
 
-  const getWinProbability = (candidateA: Candidate, candidateB: Candidate) => {
-    const directQuestion = Object.entries(selectedAnswers).find(([question]) =>
-      question.includes(candidateA.name) &&
-      question.includes(candidateB.name) &&
-      question.toLowerCase().includes("probability")
-    );
+  const getStoredPairwiseProbability = (
+    type: "primary" | "general",
+    firstCandidateName: string,
+    secondCandidateName: string,
+    party?: Party
+  ) => {
+    const forwardId = type === "primary"
+      ? `primary:${party}:${firstCandidateName}:${secondCandidateName}`
+      : `general:${firstCandidateName}:${secondCandidateName}`;
+    const reverseId = type === "primary"
+      ? `primary:${party}:${secondCandidateName}:${firstCandidateName}`
+      : `general:${secondCandidateName}:${firstCandidateName}`;
 
-    if (!directQuestion || typeof directQuestion[1] !== "number") {
+    const forwardValue = selectedAnswers[forwardId];
+    if (typeof forwardValue === "number") {
+      return forwardValue / 100;
+    }
+
+    const reverseValue = selectedAnswers[reverseId];
+    if (typeof reverseValue === "number") {
+      return 1 - reverseValue / 100;
+    }
+
+    return null;
+  };
+
+  const getStoredPairwiseProbabilityDebug = (
+    type: "primary" | "general",
+    firstCandidateName: string,
+    secondCandidateName: string,
+    party?: Party
+  ) => {
+    const forwardId = type === "primary"
+      ? `primary:${party}:${firstCandidateName}:${secondCandidateName}`
+      : `general:${firstCandidateName}:${secondCandidateName}`;
+    const reverseId = type === "primary"
+      ? `primary:${party}:${secondCandidateName}:${firstCandidateName}`
+      : `general:${secondCandidateName}:${firstCandidateName}`;
+
+    const forwardValue = selectedAnswers[forwardId];
+    if (typeof forwardValue === "number") {
+      return {
+        probability: forwardValue / 100,
+        source: "answered",
+        answerId: forwardId,
+      } as const;
+    }
+
+    const reverseValue = selectedAnswers[reverseId];
+    if (typeof reverseValue === "number") {
+      return {
+        probability: 1 - reverseValue / 100,
+        source: "answered-reversed",
+        answerId: reverseId,
+      } as const;
+    }
+
+    return {
+      probability: 0.5,
+      source: "fallback-50-50",
+      answerId: null,
+    } as const;
+  };
+
+  const getWinProbability = (candidateA: Candidate, candidateB: Candidate) => {
+    const pairwiseProbability = candidateA.party === candidateB.party
+      ? getStoredPairwiseProbability("primary", candidateA.name, candidateB.name, candidateA.party)
+      : getStoredPairwiseProbability("general", candidateA.name, candidateB.name);
+
+    if (typeof pairwiseProbability !== "number") {
       const seedMatchup = seedMatchups.find(
         (m) =>
           m.democratCandidateId === candidateA.id && m.republicanCandidateId === candidateB.id
@@ -248,35 +376,67 @@ export default function VoteometerApp() {
       return 0.5;
     }
 
-    const [question, value] = directQuestion;
-    const probability = (value as number) / 100;
-    return question.includes(`${candidateA.name} wins`) ? probability : 1 - probability;
+    return pairwiseProbability;
   };
 
-  const getOpponentPrimaryProbabilities = (opponents: Candidate[]) => {
-    if (opponents.length !== 2) {
-      const uniform = 1 / Math.max(opponents.length, 1);
-      return new Map(opponents.map((opponent) => [opponent.id, uniform]));
+  const getPrimaryWinProbabilities = (partyCandidates: Candidate[]) => {
+    if (partyCandidates.length === 0) {
+      return new Map<string, number>();
     }
 
-    const [opp1, opp2] = opponents;
-    const pOpp1 = getWinProbability(opp1, opp2);
-    return new Map<string, number>([
-      [opp1.id, pOpp1],
-      [opp2.id, 1 - pOpp1],
-    ]);
+    if (partyCandidates.length === 1) {
+      return new Map([[partyCandidates[0].id, 1]]);
+    }
+
+    if (partyCandidates.length === 2) {
+      const [candidateA, candidateB] = partyCandidates;
+      const pCandidateA = getWinProbability(candidateA, candidateB);
+      return new Map<string, number>([
+        [candidateA.id, pCandidateA],
+        [candidateB.id, 1 - pCandidateA],
+      ]);
+    }
+
+    const strengths = partyCandidates.map((candidate) => {
+      const averageLogit = partyCandidates
+        .filter((opponent) => opponent.id !== candidate.id)
+        .reduce((sum, opponent) => {
+          const pairwiseWinProb = clampProbability(getWinProbability(candidate, opponent));
+          return sum + Math.log(pairwiseWinProb / (1 - pairwiseWinProb));
+        }, 0) / Math.max(partyCandidates.length - 1, 1);
+
+      return {
+        id: candidate.id,
+        strength: Math.exp(averageLogit),
+      };
+    });
+
+    const totalStrength = strengths.reduce((sum, candidate) => sum + candidate.strength, 0);
+    return new Map(
+      strengths.map((candidate) => [candidate.id, totalStrength > 0 ? candidate.strength / totalStrength : 1 / partyCandidates.length])
+    );
   };
 
-  const calculatePowerNumbers = useMemo(() => {
-    const opponentParty: Party = userParty === "Democrat" ? "Republican" : "Democrat";
-    const ownCandidates = candidates.filter((candidate) => candidate.party === userParty);
-    const opponentCandidates = candidates.filter((candidate) => candidate.party === opponentParty);
-    const opponentPrimaryProbabilities = getOpponentPrimaryProbabilities(opponentCandidates);
+  const opponentParty: Party = userParty === "Democrat" ? "Republican" : "Democrat";
+  const ownPartyCandidates = candidates.filter((candidate) => candidate.party === userParty);
+  const opposingPartyCandidates = candidates.filter((candidate) => candidate.party === opponentParty);
+  const ownPrimaryProbabilities = useMemo(
+    () => getPrimaryWinProbabilities(ownPartyCandidates),
+    [ownPartyCandidates, selectedAnswers]
+  );
+  const opponentPrimaryProbabilities = useMemo(
+    () => getPrimaryWinProbabilities(opposingPartyCandidates),
+    [opposingPartyCandidates, selectedAnswers]
+  );
+  const ownPrimaryIsModeled = ownPartyCandidates.length > 2;
+  const opponentPrimaryIsModeled = opposingPartyCandidates.length > 2;
+  const isMultiCandidateMode = ownPrimaryIsModeled || opponentPrimaryIsModeled;
 
-    return ownCandidates.map((candidate) => {
+  const calculatePowerNumbers = useMemo(() => {
+    return ownPartyCandidates.map((candidate) => {
       const ownRating = getCandidateRating(candidate);
 
-      const powerNumber = opponentCandidates.reduce((sum, opponent) => {
+      const breakdown = opposingPartyCandidates.map((opponent) => {
         const opponentRating = getCandidateRating(opponent);
         const opponentPrimaryProb = opponentPrimaryProbabilities.get(opponent.id) ?? 0;
         const ownGeneralWinProb = getWinProbability(candidate, opponent);
@@ -284,15 +444,35 @@ export default function VoteometerApp() {
         const expectedValueAgainstOpponent =
           ownGeneralWinProb * ownRating + (1 - ownGeneralWinProb) * opponentRating;
 
-        return sum + opponentPrimaryProb * expectedValueAgainstOpponent;
-      }, 0);
+        return {
+          opponentId: opponent.id,
+          opponentName: opponent.name,
+          opponentRating,
+          opponentNominationProbability: opponentPrimaryProb,
+          ownGeneralWinProbability: ownGeneralWinProb,
+          expectedValueAgainstOpponent,
+          weightedContribution: opponentPrimaryProb * expectedValueAgainstOpponent,
+        };
+      });
+
+      const presidencyValueIfNominated = breakdown.reduce(
+        (sum, detail) => sum + detail.weightedContribution,
+        0
+      );
+
+      const ownPrimaryProb = ownPrimaryIsModeled ? ownPrimaryProbabilities.get(candidate.id) ?? 0 : 1;
+
+      const powerNumber = ownPrimaryProb * presidencyValueIfNominated;
 
       return {
         ...candidate,
+        nominationProbability: ownPrimaryIsModeled ? ownPrimaryProb : null,
+        presidencyValueIfNominated,
+        breakdown,
         powerNumber,
       };
     });
-  }, [candidates, selectedAnswers, userParty]);
+  }, [opposingPartyCandidates, opponentPrimaryProbabilities, ownPartyCandidates, ownPrimaryIsModeled, ownPrimaryProbabilities, selectedAnswers]);
 
   const recommendedCandidate = useMemo(() => {
     const ownPartyCandidates = calculatePowerNumbers.filter(
@@ -349,7 +529,9 @@ export default function VoteometerApp() {
     console.log("Datasets:", powerNumberData.datasets);
   }, [powerNumberData]);
 
-  const ownPartyCandidates = candidates.filter((candidate) => candidate.party === userParty);
+  const suggestedCandidatesForParty = suggested2028Candidates[userParty].filter(
+    (name) => !ownPartyCandidates.some((candidate) => candidate.name.toLowerCase() === name.toLowerCase())
+  );
   const currentQuestion = questions[currentQuestionIndex];
   const totalQuestions = questions.length;
   const currentAnswer = currentQuestion ? selectedAnswers[currentQuestion.id] : undefined;
@@ -357,6 +539,34 @@ export default function VoteometerApp() {
   const progressPercent = totalQuestions > 0
     ? Math.round(((currentQuestionIndex + 1) / totalQuestions) * 100)
     : 0;
+
+  const nominationProbabilityLabel = (probability: number | null | undefined) => {
+    if (typeof probability !== "number") {
+      return "Not modeled in 2-candidate mode";
+    }
+
+    return `${Math.round(probability * 100)}%`;
+  };
+
+  const percentLabel = (probability: number) => `${Math.round(probability * 100)}%`;
+  const primaryDebugRows = (partyCandidates: Candidate[], party: Party) =>
+    partyCandidates.flatMap((candidate, index) =>
+      partyCandidates.slice(index + 1).map((opponent) => {
+        const debugInfo = getStoredPairwiseProbabilityDebug("primary", candidate.name, opponent.name, party);
+        return {
+          id: `${candidate.id}:${opponent.id}`,
+          leftName: candidate.name,
+          rightName: opponent.name,
+          probability: debugInfo.probability,
+          source: debugInfo.source,
+          answerId: debugInfo.answerId,
+        };
+      })
+    );
+
+  const dynamicFormulaText = isMultiCandidateMode
+    ? `For each candidate C:\nPowerNumber(C) = NominationProb(C) x Sum over opponent O of [OpponentNominationProb(O) x (Rating(C) x WinProb(C,O) + Rating(O) x (1 - WinProb(C,O)))]`
+    : `D1 = [D1P x R1W x D1R1] + [D1P x R2W x D1R2] + [R1P x R1W x R1D1] + [R2P x R2W x R2D1]\nD2 = [D2P x R1W x D2R1] + [D2P x R2W x D2R2] + [R1P x R1W x R1D2] + [R2P x R2W x R2D2]`;
 
   const startQuestionnaire = () => {
     if (!questions.length) {
@@ -405,6 +615,7 @@ export default function VoteometerApp() {
             <section className="mx-auto max-w-3xl rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
               <h2 className="text-lg font-semibold text-zinc-900">Step 1: Setup</h2>
               <p className="mt-1 text-sm text-zinc-600">Choose your party and confirm candidates before starting the flashcards.</p>
+              <p className="mt-2 text-sm text-zinc-500">Voteometer always asks about every candidate's rating, the other party's primary odds, and cross-party general-election matchups. If either party has three or more candidates, it also asks same-party primary matchups for that party and converts them into nomination probabilities.</p>
 
               <div className="mt-5 inline-flex rounded-xl border border-zinc-300 bg-zinc-50 p-1">
                 <button
@@ -427,6 +638,37 @@ export default function VoteometerApp() {
                 >
                   Republican
                 </button>
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-700">Potential 2028 candidates</h3>
+                    <p className="mt-1 max-w-2xl text-sm text-zinc-600">
+                      Tap a suggested name to add it to your {userParty.toLowerCase()} candidate list.
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-zinc-300 bg-white px-3 py-1 text-xs font-medium text-zinc-600">
+                    Suggestions only
+                  </span>
+                </div>
+
+                {suggestedCandidatesForParty.length > 0 ? (
+                  <ul className="mt-4 flex flex-wrap gap-2">
+                    {suggestedCandidatesForParty.map((candidateName) => (
+                      <li key={candidateName}>
+                        <button
+                          onClick={() => handleAddCandidate(userParty, candidateName)}
+                          className="rounded-full border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100"
+                        >
+                          + {candidateName}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-4 text-sm text-zinc-600">All suggested {userParty.toLowerCase()} candidates are already in your list.</p>
+                )}
               </div>
 
               <div className="mt-6 border-t border-zinc-200 pt-5">
@@ -555,10 +797,22 @@ export default function VoteometerApp() {
                           handleAnswerChange(currentQuestion.id, 0);
                           return;
                         }
-                        handleAnswerChange(currentQuestion.id, Math.max(0, Math.min(100, raw)));
+                        handleAnswerChange(currentQuestion.id, Math.max(0, Math.min(100, raw)), "manual");
                       }}
                       className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 transition-shadow duration-200 focus:outline-none focus:ring-2 focus:ring-zinc-300"
                     />
+                    {expertEstimateSources[currentQuestion.id] && (
+                      <div className="mt-2">
+                        <span className="inline-flex items-center gap-1 rounded-full border border-zinc-300 bg-zinc-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-zinc-700">
+                          <span>🗂</span>
+                          {expertEstimateSources[currentQuestion.id] === "polymarket"
+                            ? "Source: Polymarket prediction market"
+                            : expertEstimateSources[currentQuestion.id] === "seed-exact"
+                            ? "Source: Expert historical polling data"
+                            : "Source: Calculated from party win averages"}
+                        </span>
+                      </div>
+                    )}
                     <button
                       onClick={() => applyExpertEstimates(currentQuestion.id)}
                       disabled={isApplyingExpertEstimates}
@@ -603,24 +857,39 @@ export default function VoteometerApp() {
                     </button>
                   </div>
                   <p className="mt-2 text-sm text-zinc-600">
-                    We combine your candidate ratings with both primary odds and general-election odds to compute expected value.
+                    {isMultiCandidateMode
+                      ? "We combine your ratings, primary matchup answers, and general-election odds into nomination probabilities and expected general-election value."
+                      : "We combine your candidate ratings with primary odds and general-election odds to compute expected value in the two-candidate model."}
                   </p>
 
                   <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 p-4 font-mono text-xs text-zinc-700">
-{`D1 = [D1P x R1W x D1R1] + [D1P x R2W x D1R2] + [R1P x R1W x R1D1] + [R2P x R2W x R2D1]
-D2 = [D2P x R1W x D2R1] + [D2P x R2W x D2R2] + [R1P x R1W x R1D2] + [R2P x R2W x R2D2]`}
+{dynamicFormulaText}
                   </div>
 
-                  <details className="mt-4 rounded-xl border border-zinc-200 bg-white p-4">
-                    <summary className="cursor-pointer text-sm font-semibold text-zinc-800">Worked example (expand)</summary>
-                    <div className="mt-3 space-y-2 text-sm text-zinc-700">
-                      <p>D1P = 5, D2P = 9, R1P = -10, R2P = -8</p>
-                      <p>R1W = 0.9, R2W = 0.1</p>
-                      <p>D1R1 = 0.7, D1R2 = 0.5, D2R1 = 0.4, D2R2 = 0.2</p>
-                      <p className="pt-1 font-medium">D1 = 3.15 + 0.25 - 2.70 - 0.32 = 0.38</p>
-                      <p className="font-medium">D2 = 3.24 + 0.18 - 5.40 - 0.64 = -2.62</p>
+                  {isMultiCandidateMode ? (
+                    <div className="mt-4 rounded-xl border border-zinc-200 bg-white p-4 text-sm text-zinc-700">
+                      <p>
+                        When a party has three or more candidates, Voteometer turns the same-party pairwise primary answers into a nomination probability for each candidate using normalized pairwise log-odds.
+                      </p>
+                      <p className="mt-2">
+                        That nomination probability is then multiplied by the candidate's expected general-election value against the opposing field.
+                      </p>
+                      <p className="mt-2 text-zinc-500">
+                        Your party nomination probabilities are {ownPrimaryIsModeled ? "fully modeled from your same-party primary answers." : "not separately modeled because your party currently has only two candidates."} The opposing party nomination probabilities are {opponentPrimaryIsModeled ? "modeled from the opposing party's primary answers." : "taken directly from the single opposing primary head-to-head question."}
+                      </p>
                     </div>
-                  </details>
+                  ) : (
+                    <details className="mt-4 rounded-xl border border-zinc-200 bg-white p-4">
+                      <summary className="cursor-pointer text-sm font-semibold text-zinc-800">Worked example (expand)</summary>
+                      <div className="mt-3 space-y-2 text-sm text-zinc-700">
+                        <p>D1P = 5, D2P = 9, R1P = -10, R2P = -8</p>
+                        <p>R1W = 0.9, R2W = 0.1</p>
+                        <p>D1R1 = 0.7, D1R2 = 0.5, D2R1 = 0.4, D2R2 = 0.2</p>
+                        <p className="pt-1 font-medium">D1 = 3.15 + 0.25 - 2.70 - 0.32 = 0.38</p>
+                        <p className="font-medium">D2 = 3.24 + 0.18 - 5.40 - 0.64 = -2.62</p>
+                      </div>
+                    </details>
+                  )}
                 </section>
               </div>
 
@@ -635,10 +904,74 @@ D2 = [D2P x R1W x D2R1] + [D2P x R2W x D2R2] + [R1P x R1W x R1D2] + [R2P x R2W x
                         <p className="text-xs uppercase tracking-wide text-zinc-300">Power Number</p>
                         <p className="mt-1 text-2xl font-semibold">{recommendedCandidate.powerNumber.toFixed(2)}</p>
                       </div>
+                      <div className="mt-3 rounded-xl bg-white/10 p-3">
+                        <p className="text-xs uppercase tracking-wide text-zinc-300">Nomination Probability</p>
+                        <p className="mt-1 text-sm font-medium text-zinc-100">{nominationProbabilityLabel(recommendedCandidate.nominationProbability)}</p>
+                      </div>
                     </>
                   ) : (
                     <p className="mt-3 text-sm text-zinc-300">No recommendation available yet.</p>
                   )}
+                </section>
+
+                <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+                  <h2 className="text-lg font-semibold text-zinc-900">Opposing Field Assumptions</h2>
+                  <p className="mt-1 text-sm text-zinc-600">These are the nomination probabilities currently assigned to the opposing party candidates.</p>
+                  <div className="mt-4 space-y-2">
+                    {opposingPartyCandidates.map((candidate) => (
+                      <div key={candidate.id} className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+                        <div>
+                          <p className="font-medium text-zinc-900">{candidate.name}</p>
+                          <p className="text-xs text-zinc-500">Rating: {getCandidateRating(candidate)}</p>
+                        </div>
+                        <p className="font-semibold text-zinc-900">
+                          {opponentPrimaryIsModeled
+                            ? percentLabel(opponentPrimaryProbabilities.get(candidate.id) ?? 0)
+                            : opposingPartyCandidates.length === 1
+                            ? "100%"
+                            : percentLabel(opponentPrimaryProbabilities.get(candidate.id) ?? 0)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+                  <h2 className="text-lg font-semibold text-zinc-900">Debug Primary Inputs</h2>
+                  <p className="mt-1 text-sm text-zinc-600">This shows the raw same-party primary values the nomination model is currently using.</p>
+                  <div className="mt-4 space-y-3">
+                    {[{ title: `${userParty} primary`, rows: primaryDebugRows(ownPartyCandidates, userParty) }, { title: `${opponentParty} primary`, rows: primaryDebugRows(opposingPartyCandidates, opponentParty) }].map((section) => (
+                      <details key={section.title} className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
+                        <summary className="cursor-pointer text-sm font-semibold text-zinc-900">{section.title}</summary>
+                        <div className="mt-3 overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+                          <table className="min-w-full divide-y divide-zinc-200 text-left text-sm text-zinc-700">
+                            <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+                              <tr>
+                                <th className="px-3 py-2 font-semibold">Matchup</th>
+                                <th className="px-3 py-2 font-semibold">Used Prob.</th>
+                                <th className="px-3 py-2 font-semibold">Source</th>
+                                <th className="px-3 py-2 font-semibold">Answer Key</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-200">
+                              {section.rows.length > 0 ? section.rows.map((row) => (
+                                <tr key={row.id}>
+                                  <td className="px-3 py-2 font-medium text-zinc-900">{row.leftName} vs {row.rightName}</td>
+                                  <td className="px-3 py-2">{percentLabel(row.probability)}</td>
+                                  <td className="px-3 py-2">{row.source}</td>
+                                  <td className="px-3 py-2 text-xs text-zinc-500">{row.answerId ?? "none"}</td>
+                                </tr>
+                              )) : (
+                                <tr>
+                                  <td colSpan={4} className="px-3 py-3 text-sm text-zinc-500">No same-party matchup inputs for this side.</td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </details>
+                    ))}
+                  </div>
                 </section>
 
                 <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
@@ -656,6 +989,67 @@ D2 = [D2P x R1W x D2R1] + [D2P x R2W x D2R2] + [R1P x R1W x R1D2] + [R2P x R2W x
                   </div>
                   <div className="h-[360px]">
                     <Bar data={powerNumberData} options={chartOptions} />
+                  </div>
+                  <div className="mt-5 space-y-2">
+                    {calculatePowerNumbers.map((candidate) => (
+                      <div key={candidate.id} className="flex items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+                        <div>
+                          <p className="font-medium text-zinc-900">{candidate.name}</p>
+                          <p className="text-xs text-zinc-500">Nomination probability: {nominationProbabilityLabel(candidate.nominationProbability)}</p>
+                        </div>
+                        <p className="font-semibold text-zinc-900">{candidate.powerNumber.toFixed(2)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
+                  <h2 className="text-lg font-semibold text-zinc-900">Why Each Score Looks Like This</h2>
+                  <p className="mt-1 text-sm text-zinc-600">Expand a candidate to see the compact contribution table for their score.</p>
+                  <div className="mt-4 space-y-4">
+                    {calculatePowerNumbers.map((candidate) => (
+                      <details key={candidate.id} className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                        <summary className="cursor-pointer list-none">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                              <h3 className="text-base font-semibold text-zinc-900">{candidate.name}</h3>
+                              <p className="mt-1 text-sm text-zinc-600">
+                                Rating {getCandidateRating(candidate)}. Presidency value if nominated: {candidate.presidencyValueIfNominated.toFixed(2)}. Final power number: {candidate.powerNumber.toFixed(2)}.
+                              </p>
+                            </div>
+                            <div className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-right text-sm text-zinc-700">
+                              <p>Nomination probability</p>
+                              <p className="font-semibold text-zinc-900">{nominationProbabilityLabel(candidate.nominationProbability)}</p>
+                            </div>
+                          </div>
+                        </summary>
+
+                        <div className="mt-4 overflow-x-auto rounded-xl border border-zinc-200 bg-white">
+                          <table className="min-w-full divide-y divide-zinc-200 text-left text-sm text-zinc-700">
+                            <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+                              <tr>
+                                <th className="px-3 py-2 font-semibold">Opponent</th>
+                                <th className="px-3 py-2 font-semibold">Opp. Nom.</th>
+                                <th className="px-3 py-2 font-semibold">Win Chance</th>
+                                <th className="px-3 py-2 font-semibold">Matchup Value</th>
+                                <th className="px-3 py-2 font-semibold">Contribution</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-200">
+                              {candidate.breakdown.map((detail: { opponentId: string; opponentName: string; opponentNominationProbability: number; ownGeneralWinProbability: number; expectedValueAgainstOpponent: number; weightedContribution: number; }) => (
+                                <tr key={detail.opponentId}>
+                                  <td className="px-3 py-2 font-medium text-zinc-900">{detail.opponentName}</td>
+                                  <td className="px-3 py-2">{percentLabel(detail.opponentNominationProbability)}</td>
+                                  <td className="px-3 py-2">{percentLabel(detail.ownGeneralWinProbability)}</td>
+                                  <td className="px-3 py-2">{detail.expectedValueAgainstOpponent.toFixed(2)}</td>
+                                  <td className="px-3 py-2 font-semibold text-zinc-900">{detail.weightedContribution.toFixed(2)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </details>
+                    ))}
                   </div>
                 </section>
               </aside>
